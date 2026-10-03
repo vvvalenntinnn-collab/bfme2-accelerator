@@ -407,7 +407,12 @@ static void rtFreshForget() { for (LONG i = 0; i < g_rtFreshN; ++i) g_rtFreshMar
 // which did nothing useful and made unrelated surfaces look busy: the v22 log shows 64x64 system-memory surfaces
 // "named by SetStreamSource", each such false hit a ~2 ms wait for the whole queue. Those ops no longer stamp.
 static BYTE g_rtOpNoTouch[512];                          // 1: this op's object arguments are never a texture or a surface
-static void rtOpNoTouchInit() { g_rtOpNoTouch[87] = g_rtOpNoTouch[92] = g_rtOpNoTouch[100] = g_rtOpNoTouch[104] = g_rtOpNoTouch[107] = 1; }   // SetVertexDeclaration, SetVertexShader, SetStreamSource, SetIndices, SetPixelShader
+static void rtOpNoTouchInit() {
+    g_rtOpNoTouch[87] = g_rtOpNoTouch[92] = g_rtOpNoTouch[100] = g_rtOpNoTouch[104] = g_rtOpNoTouch[107] = 1;   // vertex input/shaders
+    // Staged VB/IB uploads name only their buffer. Buffer locks synchronize via
+    // staging/mirrors or an unconditional drain, not texture/surface tracking.
+    g_rtOpNoTouch[342] = g_rtOpNoTouch[362] = 1;
+}
 static __forceinline DWORD rtObj(RtRec* r, int argIndex, DWORD obj) {
     if (obj && !g_rtOpNoTouch[r->op & 511]) { rtTouch(obj, (WORD)r->op); g_rtRefOp[rtRefIdx(obj)] = (WORD)r->op; rtFreshName(obj); }
     if (obj && g_rtObjRefs) { ((DWORD(__stdcall*)(DWORD))(*(DWORD**)(ULONG_PTR)obj)[1])(obj); r->objMask |= (WORD)(1u << argIndex); }
