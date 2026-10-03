@@ -16,6 +16,7 @@
 
 #include <emmintrin.h>
 #include <float.h>
+#include "aotr_uploadlease.inc"
 
 static volatile LONG g_rtActive = 0;
 static bool  g_rtTried = false;
@@ -506,6 +507,7 @@ static void rtExec(RtRec* r) {
             memcpy(mapped, (const void*)(ULONG_PTR)a[5], a[2]);
         ((DWORD(__stdcall*)(DWORD))(ULONG_PTR)a[4])(a[0]);
         if (r->objMask & 1) ((DWORD(__stdcall*)(DWORD))(*(DWORD**)(ULONG_PTR)a[0])[2])(a[0]);
+        rtUploadDone((RtUploadBlock*)(ULONG_PTR)a[6]);
         return;
     }
     DWORD ret_ = 0;
@@ -1816,7 +1818,7 @@ static void rtBMIndexRebuild() {
 static LONG g_rtBMDead = 0;
 static void rtBMKill(DWORD b) { RtBufMir* m = rtBMFind(b); if (m) { m->dead = 1; g_rtNBMDrop++; g_rtBMDead++; } }
 static void rtBMKillAll() { for (int i = 0; i < RT_BMIR; ++i) if (g_rtBM[i].live && !g_rtBM[i].dead) { g_rtBM[i].dead = 1; g_rtNBMDrop++; g_rtBMDead++; } }
-struct RtStage { DWORD buf, off, size, flags; BYTE* mem; RtBufMir* mir; };
+struct RtStage { DWORD buf, off, size, flags; BYTE* mem; RtBufMir* mir; RtUploadBlock* upload; };
 #define RT_STG 256
 static RtStage g_rtStage[RT_STG];
 static int g_rtNStage = 0;
@@ -1906,10 +1908,13 @@ static DWORD rtBufLock(void* self, void** O, int op, DWORD off, DWORD size, DWOR
                 }
                 DWORD at = (g_rtArenaTop + 15) & ~15u;
                 why = (plain && !m) ? 6 : 5;
-                if ((!plain || m) && at + n <= RT_ARENA_SIZE) {
-                    g_rtArenaTop = at + n;
+                RtUploadBlock* upload = (!plain || m) ? rtUploadAcquire(n) : NULL;
+                if ((!plain || m) && (upload || at + n <= RT_ARENA_SIZE)) {
+                    if (!upload) g_rtArenaTop = at + n;
                     RtStage& st = g_rtStage[g_rtNStage++];
-                    st.buf = b; st.off = off; st.size = n; st.flags = flags; st.mem = g_rtArena + at; st.mir = m;
+                    st.buf = b; st.off = off; st.size = n; st.flags = flags;
+                    st.mem = upload ? rtUploadData(upload) : g_rtArena + at;
+                    st.mir = m; st.upload = upload;
                     if (plain) { memcpy(st.mem, m->mem + off, n); m->lastFrame = g_mkFrames; g_rtNBMLock++; }    // what a plain lock shows
                     *(void**)(ULONG_PTR)ppData = st.mem;
                     g_rtNStaged++;
@@ -1934,10 +1939,12 @@ static DWORD rtBufUnlock(void* self, void** O, int op) {
         for (int k = i; k < g_rtNStage - 1; ++k) g_rtStage[k] = g_rtStage[k + 1];
         g_rtNStage--;
         if (st.mir && st.mir->live && !st.mir->dead && st.mir->buf == b && st.off + st.size <= st.mir->len) memcpy(st.mir->mem + st.off, st.mem, st.size);
-        RtRec* r = rtAlloc(7, st.size); r->fn = O[11]; r->op = (WORD)op;
+        RtRec* r = rtAlloc(7, st.upload ? 0 : st.size); r->fn = O[11]; r->op = (WORD)op;
         DWORD* A = rtArgs(r); BYTE* P = rtPayload(r); DWORD po = 0;
         A[0] = rtObj(r, 0, b); A[1] = st.off; A[2] = st.size; A[3] = st.flags; A[4] = (DWORD)(ULONG_PTR)O[12];
-        A[5] = rtBytes(P, &po, (DWORD)(ULONG_PTR)st.mem, st.size); A[6] = 0;
+        A[5] = st.upload ? (DWORD)(ULONG_PTR)st.mem : rtBytes(P, &po, (DWORD)(ULONG_PTR)st.mem, st.size);
+        A[6] = (DWORD)(ULONG_PTR)st.upload;
+        if (st.upload) rtUploadQueue(st.upload);
         r->kind = 3;
         rtCommit(r, po);
         if (g_rtNStage == 0) g_rtArenaTop = 0;
@@ -2096,6 +2103,8 @@ static void rtInit() {                                  // any thread; hooks the
 static void rtInitBody() {
     char env[8]; env[0] = 0;
     if (GetEnvironmentVariableA("AOTR_DEVICE_RELEASE_FAST", env, sizeof(env)) && env[0] == '0') g_rtDeviceReleaseFast = false;
+    env[0] = 0;
+    if (GetEnvironmentVariableA("AOTR_UPLOADLEASE", env, sizeof(env)) && env[0] == '0') g_rtUploadOn = false;
     env[0] = 0;
     if (GetEnvironmentVariableA("AOTR_RT", env, sizeof(env)) && env[0] == '0') { g_rtTried = true; logf("rt: disabled by AOTR_RT=0."); return; }
     rtOpNoTouchInit();
@@ -2584,6 +2593,7 @@ extern "C" __declspec(dllexport) void __cdecl AotrRtTestStats(char* out, int n) 
 // ---------------------------------------------------------------- frame capture: the queue side (see aotr_capture.inc)
 static void capRecord(RtRec* r, DWORD po) {                        // game thread, from rtCommit
     const DWORD* a = rtArgs(r); const BYTE* P = rtPayload(r);
+    if (r->kind == 3 && a[6]) { P = (const BYTE*)(ULONG_PTR)a[5]; po = a[2]; }
     capPrintf("R %s k=%u n=%u", rtOpName(r->op), (unsigned)r->kind, (unsigned)r->nargs);
     for (DWORD i = 0; i < r->nargs && i < 16; ++i) capPrintf(" %08X", a[i]);
     if (po) { capPrintf(" | pl=%u h=%08X ", po, capHash(P, po)); capHex(P, po < 256 ? po : 256); }

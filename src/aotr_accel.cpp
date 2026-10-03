@@ -31,6 +31,7 @@ static char g_dir[MAX_PATH] = "";
 static char kLogPath[MAX_PATH] = "";
 static volatile LONG g_engineHooks = 0;   // may this build's absolute addresses be patched?
 static bool g_bfme2Hooks = false;         // independently verified BFME2 1.06 hooks
+static bool g_rotwkFxHooks = false;       // independently verified RotWK retail particle/pose hooks
 static void aotrSetDir(HMODULE self) {
     char p[MAX_PATH];
     DWORD n = GetModuleFileNameA(self, p, MAX_PATH);
@@ -2378,6 +2379,7 @@ static void rotateLog() {
 #include "aotr_rlsort.inc"
 #include "aotr_rt.inc"
 #include "aotr_bfme2.inc"
+#include "aotr_rotwk_particles.inc"
 
 // ---------------------------------------------------------------- game-thread sampler v2 (RT build)
 // 100 samples/s of the game's render thread while frames are heavy (>= 30 ms) and the render thread is live.
@@ -2662,6 +2664,7 @@ static DWORD WINAPI initThread(LPVOID) {
             { 0xDE0F8163, 0x460DA09E, 0x00AD4000, 0x00ADC2F6, 0x0063D082, "RotWK 2.02 delayfix",                            false },
             { 0x8C81C601, 0x460DA09E, 0x00ACA000, 0x00BAF85F, 0x0063D082, "RotWK 2.02 build 820",                           false },
             { 0x32667B9B, 0x00564544, 0x00ADA000, 0x00BC0776, 0x00629306, "BFME2",                                          false },
+            { 0x4404F3C6, 0x460DA09E, 0x00AD3000, 0x00ADC2F6, 0x0063D082, "RotWK retail (particle/pose capabilities)",       false },
         };
         const Build* hit = NULL;
         for (int i = 0; i < (int)(sizeof(kBuilds) / sizeof(kBuilds[0])); ++i)
@@ -2674,9 +2677,11 @@ static DWORD WINAPI initThread(LPVOID) {
         if (hit) {
             g_engineHooks = hit->engineHooks ? 1 : 0;
             g_bfme2Hooks = textHash == 0x32667B9B && (DWORD)(ULONG_PTR)base == 0x00400000;
+            g_rotwkFxHooks = textHash == 0x4404F3C6 && (DWORD)(ULONG_PTR)base == 0x00400000;
             logf("init: %s (.text %08X). %s", hit->name, textHash,
                  g_engineHooks ? "Everything is installed." : g_bfme2Hooks ?
                  "Portable accelerators plus independently checked BFME2 equivalence and mesh-picking hooks are eligible." :
+                 g_rotwkFxHooks ? "Portable accelerators plus independently checked RotWK particle/pose hooks are eligible." :
                  "Only the parts that do not depend on this build's addresses are installed (render thread, heap, preshader cache, fast CRT).");
         } else if (family) {
             g_engineHooks = 0;
@@ -2761,6 +2766,7 @@ static DWORD WINAPI initThread(LPVOID) {
         installFastCrt(base);                        // exact fast memcpy / memset / strlen / strcmp / floor ... for the game's imports
         installCrashLog();                           // fatal exceptions: where, registers and the call chain into the log (diagnostic only)
         if (g_bfme2Hooks) installBfme2Hooks();
+        if (g_rotwkFxHooks) installRotwkFxHooks();
 
         // --- anchored to absolute addresses inside one verified build
         if (g_engineHooks) {
