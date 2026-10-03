@@ -122,7 +122,23 @@ static bool pbVertexBounds(const BYTE* model, LONG polys, float* mn, float* mx) 
     if (!idx || !v) return false;
     __m128 lo = pbLoadVertex(v + 3 * idx[0]), hi = lo;
     if (_mm_movemask_ps(_mm_cmpunord_ps(lo, lo))) return false;
-    for (LONG i = 1, n = polys * 3; i < n; ++i) {
+    LONG i = 1, n = polys * 3;
+    // Reduce four vertices together so the running min/max is not a serial
+    // dependency for every indexed vertex. Preserve index order on equal values
+    // (including signed zero), and still load exactly three floats per vertex.
+    for (; i + 3 < n; i += 4) {
+        __m128 q0 = pbLoadVertex(v + 3 * idx[i]);
+        __m128 q1 = pbLoadVertex(v + 3 * idx[i + 1]);
+        __m128 q2 = pbLoadVertex(v + 3 * idx[i + 2]);
+        __m128 q3 = pbLoadVertex(v + 3 * idx[i + 3]);
+        __m128 bad01 = _mm_or_ps(_mm_cmpunord_ps(q0, q0), _mm_cmpunord_ps(q1, q1));
+        __m128 bad23 = _mm_or_ps(_mm_cmpunord_ps(q2, q2), _mm_cmpunord_ps(q3, q3));
+        if (_mm_movemask_ps(_mm_or_ps(bad01, bad23))) return false;
+        __m128 low = _mm_min_ps(_mm_min_ps(q0, q1), _mm_min_ps(q2, q3));
+        __m128 high = _mm_max_ps(_mm_max_ps(q0, q1), _mm_max_ps(q2, q3));
+        lo = _mm_min_ps(lo, low); hi = _mm_max_ps(hi, high);
+    }
+    for (; i < n; ++i) {
         __m128 q = pbLoadVertex(v + 3 * idx[i]);
         if (_mm_movemask_ps(_mm_cmpunord_ps(q, q))) return false;
         lo = _mm_min_ps(lo, q); hi = _mm_max_ps(hi, q);

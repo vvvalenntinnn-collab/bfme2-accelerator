@@ -67,6 +67,7 @@ build_rlsort_test.bat      && rlsort_test        :: maps game.dat, runs the stoc
                                                  :: pass the path if your install is not C:\AgeoftheRing
 build_audiolimit_test.bat  && audiolimit_test 0  :: indexed answer vs the walk, random list mutations
 build_production_hotpath_test.bat             :: reporting vs production counters, cache checks and allocation
+build_pick_bounds_test.bat benchmark           :: bit-exact indexed bounds and before/after benchmark
 build_logicslicer_test.bat && logicslicer_test   :: slicer on vs off, operation sequence must be identical
 build_quat_test.bat        && quat_test          :: reads ../quatpairs.txt
 build_harness.bat          && rt_harness off 600 t600.txt
