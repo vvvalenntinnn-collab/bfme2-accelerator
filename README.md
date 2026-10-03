@@ -27,7 +27,7 @@ variable.
 - `aotr_uploadlease.inc` retains large staged VB/IB writes through worker completion, removing the
   producer's queue-payload copy with a bounded pool and the existing copied fallback.
 - `aotr_rotwk_particles.inc` installs independently checked particle color packing and positive
-  particle-system ID lookup for RotWK retail `.text` hash `4404F3C6`. The accompanying HLod matrix
+  particle-system ID lookup for verified RotWK `.text` hashes `4404F3C6` and `88C193EE`. The accompanying HLod matrix
   cache prototype is disabled by default because its timings are mixed. See
   [RotWK support, measurements and switches](docs/rotwk-retail-performance.md).
 - `aotr_fastcrt.inc` replaces the hot `msvcr71` imports with SSE versions that return identical bytes.
@@ -42,6 +42,9 @@ variable.
 - `aotr_bfme2.inc` independently ports equivalence caching and the mesh-picking box pretest to verified
   BFME2 1.06. See [supported hooks, validation and switches](docs/bfme2-engine-hooks.md).
 - `aotr_audiolimit.inc` indexes the audio request limit check.
+- `aotr_rotwk_work.inc` independently ports retail render-list/audio capabilities and coarse profiling.
+  `aotr_cpu_topology.h` and `aotr_prepare_pool.h` support physical-core placement and experimental joined particle work.
+  See the [implementation and synthetic results](docs/rotwk-synthetic-implementation-2026-10-03.md), including regressions and remaining stages.
 - `aotr_pick.inc` and `aotr_rtmirror.inc` cover the mouse pick ray cast and the radar overlay mirrors.
 
 `aotr_capture.inc`, `aotr_crashlog.inc`, `aotr_modtime.inc`, `aotr_flushtime.inc`, `aotr_clienttime.inc` and
@@ -78,7 +81,9 @@ build_audiolimit_test.bat  && audiolimit_test 0  :: indexed answer vs the walk, 
 build_production_hotpath_test.bat             :: reporting vs production counters, cache checks and allocation
 build_buffer_tracking_test.bat               :: staged VB/IB uploads, pending resources and COM lifetime
 build_upload_lease_test.bat                   :: retained upload bytes, completion, allocation/budget fallback
+build_diagnostic_identity_test.bat           :: EXE/DAT log symbols, bounded messages, portable frame reporting
 build_rotwk_fx_test.bat temporary-reference.bin :: retail color/ID/pose comparisons; preparation below
+build_rotwk_work_test.bat temporary-reference.bin benchmark :: native retail sort/audio/gather and 1–4 physical-core CPU workloads; prepare with --work
 build_pick_bounds_test.bat benchmark           :: bit-exact indexed bounds and before/after benchmark
 build_logicslicer_test.bat && logicslicer_test   :: slicer on vs off, operation sequence must be identical
 build_quat_test.bat        && quat_test          :: reads ../quatpairs.txt
@@ -95,6 +100,12 @@ and hash collisions. See [buffer dependency tracking](docs/buffer-dependency-tra
 
 The RotWK fixture needs a privately generated reference from the verified retail executable; no game
 bytes are stored in this repository. See [reference preparation and test commands](docs/rotwk-retail-performance.md#validation).
+
+The [ROTWK late-game audit](docs/rotwk-late-game-audit-2026-10-03.md) covers particle/model preparation,
+draw batching, movement, audio backlog, the 120 FPS budget and a plan for cores 2–4. DLL logs identify
+the actual loaded engine module. Portable reporting intervals come from queued Present submissions;
+engine phase fields remain unmeasured without verified phase hooks. The legacy engine profiler is
+restricted to its verified image and reporting builds.
 
 `rt_harness` renders a scene shaped like the game's own render pattern, reads every frame back and hashes it.
 `off` goes straight to D3D9, `on` runs the same frames through the render thread. Run both and the hashes

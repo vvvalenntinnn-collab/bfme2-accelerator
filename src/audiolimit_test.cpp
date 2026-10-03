@@ -2,6 +2,7 @@
 // request list, random passes with tracked and untracked list changes, every indexed answer compared with the walk.
 //   audiolimit_test.exe [mode] [distinct-infos]     mode 0: only changes the engine can make (must never differ)
 //                                                    mode 1: also rewrites an event's info under the index (the proof must trip)
+#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <intrin.h>
 #include <stdio.h>
@@ -15,6 +16,7 @@ static void resumeAll(HANDLE*, int) {}
 static char* perStr(LONG64 a, LONG64 b, char* buf) { sprintf(buf, "%.1f", b ? (double)a / (double)b : 0.0); return buf; }
 static char* msStr(LONG64 a, LONG64 b, char* buf) { sprintf(buf, "%.3f", b ? (double)a / (double)b : 0.0); return buf; }
 static double g_tscPerQpc = 1.0;
+static bool g_diag=false;
 
 struct Node { Node* next; Node* prev; void* val; };
 static void  __fastcall tPushBack(void* list, void*, void* pval)  { Node* h = *(Node**)list; Node* n = (Node*)malloc(sizeof(Node)); n->val = *(void**)pval; n->next = h; n->prev = h->prev; h->prev->next = n; h->prev = n; }
@@ -88,5 +90,5 @@ int main(int argc, char** argv) {
            g_mode, g_skew, (int)passes, (int)maxLen, (int)g_cmp, (int)g_diff, (int)g_alCalls, (int)g_alIdx, (int)g_alRebuilds, (int)g_alStale, (int)g_alErased, (int)g_alMut, (int)g_alFaults, (int)g_alTooBig,
            (int)g_alChecked, (int)g_alMismatch, (int)g_alLive, (int)g_illegal);
     if (g_mode == 0) return (g_diff || g_alMismatch || !g_alLive) ? 1 : 0;
-    return 0;
+    return (g_illegal && g_alMismatch && !g_alLive) ? 0 : 1;
 }

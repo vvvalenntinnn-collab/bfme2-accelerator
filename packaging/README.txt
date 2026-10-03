@@ -32,6 +32,13 @@ is missing when you can see it, that is what happened - add the folder to your e
 
 Otherwise read bfme2_accel.log next to the DLL. The first lines say what it recognised.
 
+Verified retail ROTWK builds also enable render-list and audio-request optimizations.
+Experimental particle preparation on extra cores is off by default. To test it, place an
+empty PARTICLE_WORKERS_ON file beside the DLL before starting the game. Remove it to return
+to serial packing. Small effects stay serial; the additional workers serve large packs.
+PARTICLE_GATHER_ON enables a separate experiment whose serial timings can be slower.
+The synthetic tests do not establish a whole-game 120 FPS guarantee.
+
 
 Known issues
 ------------

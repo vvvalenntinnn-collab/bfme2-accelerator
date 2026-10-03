@@ -43,6 +43,8 @@ src/inject_result.txt
 # ---- marker files: local switches, read from beside the DLL -----------------------------------------------
 DIAG_ON
 CAPTURE_ON
+PARTICLE_WORKERS_ON
+PARTICLE_GATHER_ON
 ANY_BINARY_OK
 SLICER_OFF
 

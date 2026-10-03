@@ -1,0 +1,88 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.5.3
+** Copyright (c) 2022 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x86'
+rpmalloc.c
+rotwk_work_test.cpp
+   Creating library rotwk_work_report_test.lib and object rotwk_work_report_test.exp
+PASS: physical-core planning, SMT siblings, partial affinity, no-SMT and single-core cases
+PASS: all 37 partial audio transactions roll back, including failure after write; region mismatch rejects installation
+BENCH render list 2500 entries: native 729056.50 ns, candidate 28640.50 ns, 25.46x (seven-sample median)
+PASS: retail capability startup lists and 3020 hooked live sorts, proof-to-sampling transition
+PASS: 2304 stock/patched native audio-loop cases, both stack counters, null entries, live flags and wrapping arithmetic
+PASS: 96 native/parallel color cases at 65536 capacity, NaNs/zeros, all MXCSR modes/status, shipping wrapper proof/live, busy/unmasked fallback and shutdown/restart
+PASS: 128 native fused-gather cases, all optional fields, random ordered/duplicate indices, capacity tails, proof transition, native resize/default and alias fallback
+PASS: EXE/DAT-specific coarse profiling guards, complete eight-byte logic detour and wrapper forwarding
+PASS: draw-range candidate barriers, unsupported primitive/base/overflow rejection and exact 120Hz reporting boundary
+ALL SYNTHETIC CHECKS PASSED
+rotwk_work_test.cpp
+   Creating library rotwk_work_prod_test.lib and object rotwk_work_prod_test.exp
+PASS: physical-core planning, SMT siblings, partial affinity, no-SMT and single-core cases
+PASS: all 37 partial audio transactions roll back, including failure after write; region mismatch rejects installation
+BENCH render list 2500 entries: native 763834.50 ns, candidate 28345.00 ns, 26.95x (seven-sample median)
+PASS: retail capability startup lists and 3020 hooked live sorts, proof-to-sampling transition
+PASS: 2304 stock/patched native audio-loop cases, both stack counters, null entries, live flags and wrapping arithmetic
+PASS: 96 native/parallel color cases at 65536 capacity, NaNs/zeros, all MXCSR modes/status, shipping wrapper proof/live, busy/unmasked fallback and shutdown/restart
+PASS: 128 native fused-gather cases, all optional fields, random ordered/duplicate indices, capacity tails, proof transition, native resize/default and alias fallback
+CORES 1 physical (one logical CPU per core), preparation workers 0; no D3D/GPU workload
+BENCH 1 cores color capacity 192: native 759.01 ns, candidate 237.43 ns, 3.20x (seven-sample median)
+BENCH 1 cores color capacity 4096: native 16941.80 ns, candidate 5038.10 ns, 3.36x (seven-sample median)
+BENCH 1 cores color capacity 65536: native 296650.80 ns, candidate 92064.00 ns, 3.22x (seven-sample median)
+BENCH 1 cores joined pool versus serial SIMD color 32768: native 43161.10 ns, candidate 43354.40 ns, 1.00x (seven-sample median)
+BENCH 1 cores joined pool versus serial SIMD color 65536: native 126823.30 ns, candidate 125567.70 ns, 1.01x (seven-sample median)
+BENCH 1 cores audio count 192 requests/64 sounds: native 553.15 ns, candidate 81.40 ns, 6.80x (seven-sample median)
+BENCH 1 cores audio count 512 requests/64 sounds: native 1432.95 ns, candidate 187.20 ns, 7.65x (seven-sample median)
+BENCH 1 cores audio count 4096 requests/64 sounds: native 13202.80 ns, candidate 1842.95 ns, 7.16x (seven-sample median)
+BENCH 1 cores audio dense bucket 512 requests/1 sound: native 1138.50 ns, candidate 1257.55 ns, 0.91x (seven-sample median)
+BENCH 1 cores selected-particle gather 192: native 1274.80 ns, candidate 1698.20 ns, 0.75x (seven-sample median)
+BENCH 1 cores selected-particle gather 4096: native 28629.60 ns, candidate 34506.80 ns, 0.83x (seven-sample median)
+BENCH 1 cores selected-particle gather 65536: native 455858.00 ns, candidate 636323.20 ns, 0.72x (seven-sample median)
+BENCH 1 cores dense CPU workload 2500 meshes/512 requests/64x4096 colors: native 2533776.00 ns, candidate 481266.00 ns, 5.26x (seven-sample median)
+BENCH 1 cores dense CPU workload 10000 meshes/4096 requests/64x4096 colors: native 47791610.00 ns, candidate 8418550.00 ns, 5.68x (seven-sample median)
+CORES 2 physical (one logical CPU per core), preparation workers 0; no D3D/GPU workload
+BENCH 2 cores color capacity 192: native 1169.61 ns, candidate 358.13 ns, 3.27x (seven-sample median)
+BENCH 2 cores color capacity 4096: native 25387.60 ns, candidate 7470.80 ns, 3.40x (seven-sample median)
+BENCH 2 cores color capacity 65536: native 356420.50 ns, candidate 124685.40 ns, 2.86x (seven-sample median)
+BENCH 2 cores joined pool versus serial SIMD color 32768: native 43382.70 ns, candidate 42652.00 ns, 1.02x (seven-sample median)
+BENCH 2 cores joined pool versus serial SIMD color 65536: native 93084.10 ns, candidate 92358.70 ns, 1.01x (seven-sample median)
+BENCH 2 cores audio count 192 requests/64 sounds: native 359.65 ns, candidate 54.00 ns, 6.66x (seven-sample median)
+BENCH 2 cores audio count 512 requests/64 sounds: native 959.70 ns, candidate 120.50 ns, 7.96x (seven-sample median)
+BENCH 2 cores audio count 4096 requests/64 sounds: native 8569.25 ns, candidate 1331.05 ns, 6.44x (seven-sample median)
+BENCH 2 cores audio dense bucket 512 requests/1 sound: native 742.50 ns, candidate 838.05 ns, 0.89x (seven-sample median)
+BENCH 2 cores selected-particle gather 192: native 854.60 ns, candidate 1122.40 ns, 0.76x (seven-sample median)
+BENCH 2 cores selected-particle gather 4096: native 18761.40 ns, candidate 23808.60 ns, 0.79x (seven-sample median)
+BENCH 2 cores selected-particle gather 65536: native 463189.80 ns, candidate 647708.00 ns, 0.72x (seven-sample median)
+BENCH 2 cores dense CPU workload 2500 meshes/512 requests/64x4096 colors: native 3690662.00 ns, candidate 693226.00 ns, 5.32x (seven-sample median)
+BENCH 2 cores dense CPU workload 10000 meshes/4096 requests/64x4096 colors: native 40878980.00 ns, candidate 5663370.00 ns, 7.22x (seven-sample median)
+CORES 3 physical (one logical CPU per core), preparation workers 1; no D3D/GPU workload
+BENCH 3 cores color capacity 192: native 796.05 ns, candidate 253.13 ns, 3.14x (seven-sample median)
+BENCH 3 cores color capacity 4096: native 17534.60 ns, candidate 5136.50 ns, 3.41x (seven-sample median)
+BENCH 3 cores color capacity 65536: native 430107.30 ns, candidate 73851.40 ns, 5.82x (seven-sample median)
+BENCH 3 cores joined pool versus serial SIMD color 32768: native 63092.60 ns, candidate 40908.40 ns, 1.54x (seven-sample median)
+BENCH 3 cores joined pool versus serial SIMD color 65536: native 92442.90 ns, candidate 52113.30 ns, 1.77x (seven-sample median)
+BENCH 3 cores audio count 192 requests/64 sounds: native 359.65 ns, candidate 53.75 ns, 6.69x (seven-sample median)
+BENCH 3 cores audio count 512 requests/64 sounds: native 964.05 ns, candidate 127.25 ns, 7.58x (seven-sample median)
+BENCH 3 cores audio count 4096 requests/64 sounds: native 8513.10 ns, candidate 1356.20 ns, 6.28x (seven-sample median)
+BENCH 3 cores audio dense bucket 512 requests/1 sound: native 793.10 ns, candidate 822.60 ns, 0.96x (seven-sample median)
+BENCH 3 cores selected-particle gather 192: native 830.60 ns, candidate 1163.00 ns, 0.71x (seven-sample median)
+BENCH 3 cores selected-particle gather 4096: native 20381.80 ns, candidate 22664.40 ns, 0.90x (seven-sample median)
+BENCH 3 cores selected-particle gather 65536: native 308885.60 ns, candidate 305369.40 ns, 1.01x (seven-sample median)
+BENCH 3 cores dense CPU workload 2500 meshes/512 requests/64x4096 colors: native 2599066.00 ns, candidate 507000.00 ns, 5.13x (seven-sample median)
+BENCH 3 cores dense CPU workload 10000 meshes/4096 requests/64x4096 colors: native 61606130.00 ns, candidate 8505090.00 ns, 7.24x (seven-sample median)
+CORES 4 physical (one logical CPU per core), preparation workers 2; no D3D/GPU workload
+BENCH 4 cores color capacity 192: native 792.64 ns, candidate 249.24 ns, 3.18x (seven-sample median)
+BENCH 4 cores color capacity 4096: native 17355.20 ns, candidate 5033.80 ns, 3.45x (seven-sample median)
+BENCH 4 cores color capacity 65536: native 295229.80 ns, candidate 36192.40 ns, 8.16x (seven-sample median)
+BENCH 4 cores joined pool versus serial SIMD color 32768: native 44121.30 ns, candidate 19731.30 ns, 2.24x (seven-sample median)
+BENCH 4 cores joined pool versus serial SIMD color 65536: native 99826.60 ns, candidate 37907.20 ns, 2.63x (seven-sample median)
+BENCH 4 cores audio count 192 requests/64 sounds: native 514.60 ns, candidate 77.75 ns, 6.62x (seven-sample median)
+BENCH 4 cores audio count 512 requests/64 sounds: native 1425.90 ns, candidate 189.35 ns, 7.53x (seven-sample median)
+BENCH 4 cores audio count 4096 requests/64 sounds: native 13129.05 ns, candidate 1895.50 ns, 6.93x (seven-sample median)
+BENCH 4 cores audio dense bucket 512 requests/1 sound: native 1143.35 ns, candidate 1252.15 ns, 0.91x (seven-sample median)
+BENCH 4 cores selected-particle gather 192: native 1261.40 ns, candidate 1704.80 ns, 0.74x (seven-sample median)
+BENCH 4 cores selected-particle gather 4096: native 28655.40 ns, candidate 33665.00 ns, 0.85x (seven-sample median)
+BENCH 4 cores selected-particle gather 65536: native 454679.40 ns, candidate 319803.00 ns, 1.42x (seven-sample median)
+BENCH 4 cores dense CPU workload 2500 meshes/512 requests/64x4096 colors: native 2530872.00 ns, candidate 491486.00 ns, 5.15x (seven-sample median)
+BENCH 4 cores dense CPU workload 10000 meshes/4096 requests/64x4096 colors: native 41094940.00 ns, candidate 5949740.00 ns, 6.91x (seven-sample median)
+ALL SYNTHETIC CHECKS PASSED

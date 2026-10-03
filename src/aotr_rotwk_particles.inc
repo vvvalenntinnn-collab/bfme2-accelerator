@@ -1,11 +1,37 @@
-// Exact RotWK retail .text 4404F3C6, verified from the user's executable.
+// Verified RotWK .text hashes 4404F3C6 and 88C193EE; target bodies match both.
 #include "aotr_particle_math.h"
+#include "aotr_prepare_pool.h"
 #define RW_COLOR_MAX 65536u
 typedef void (__fastcall* RwColorFn)(void*, void*);
 static RwColorFn g_rwColorOriginal = NULL;
 static float* g_rwColorScratch = NULL;
 static DWORD g_rwColorProof = 512, g_rwColorTick = 0;
 static bool g_rwColorKill = false;
+static AccelPreparePool g_rwPreparePool={};
+static bool g_rwPrepareTried=false, g_rwPrepareEnabled=false;
+struct RwColorJob { float* dst; const float* rgb; const float* alpha; };
+static void rwColorRange(void* context,unsigned begin,unsigned end) {
+    const RwColorJob& job=*(RwColorJob*)context;
+    particleColorPack(job.dst+begin*4,job.rgb?job.rgb+begin*3:NULL,job.alpha?job.alpha+begin:NULL,end-begin);
+}
+static bool rwRunPreparation(AccelPrepareFn function,void* context,DWORD count) {
+    // Dispatch/join cost dominates ordinary small systems. Experimental large
+    // packs use the same shared pool intended for future pure preparation jobs.
+    if(g_rwPrepareEnabled && count>=32768) {
+        if(!g_rwPrepareTried) {
+            g_rwPrepareTried=true; AccelCpuPlan plan=accelReserveCpuRoles(accelAllowedCpuPlan(),g_rtIdealMain,g_rtIdealWorker);
+            g_rwPreparePool.start(plan);
+            logf("rotwk: joined preparation pool %u workers on %u allowed physical cores (two cores reserved for main/render).",g_rwPreparePool.workers,plan.count);
+        }
+        return g_rwPreparePool.run(function,context,count,2048);
+    }
+    return false;
+}
+static void rwPackColors(float* dst,const float* rgb,const float* alpha,DWORD count) {
+    RwColorJob job={dst,rgb,alpha};
+    if(rwRunPreparation(rwColorRange,&job,count)) return;
+    particleColorPack(dst,rgb,alpha,count);
+}
 static bool rwOverlap(const void* a, DWORD an, const void* b, DWORD bn) {
     if (!b) return false;
     ULONG_PTR x = (ULONG_PTR)a, y = (ULONG_PTR)b;
@@ -34,7 +60,7 @@ static void __fastcall hkRwParticleColor(void* object, void* edx) {
     }
     bool check = g_rwColorProof || ((++g_rwColorTick & 63) == 0);
     if (check) {
-        particleColorPack(g_rwColorScratch, rgb, alpha, count);
+        rwPackColors(g_rwColorScratch, rgb, alpha, count);
         g_rwColorOriginal(object, edx);
         // Return the original output on every proof/verification call.
         if (memcmp(dst, g_rwColorScratch, count * 16)) {
@@ -43,7 +69,7 @@ static void __fastcall hkRwParticleColor(void* object, void* edx) {
         } else if (g_rwColorProof && !--g_rwColorProof) {
             logf("rotwk: 512 complete particle color outputs matched; fused pass live (1 in 64 checked).");
         }
-    } else particleColorPack(dst, rgb, alpha, count);
+    } else rwPackColors(dst, rgb, alpha, count);
 }
 static DWORD rwBodyHash(const BYTE* bytes, DWORD size) {
     DWORD hash = 2166136261u;
@@ -135,9 +161,17 @@ static bool rwEnabled(const char* name) {
     char value[8] = {};
     return !GetEnvironmentVariableA(name,value,sizeof(value)) || value[0] != '0';
 }
+static bool rwOptIn(const char* environment,const char* marker) {
+    char value[8]={},path[MAX_PATH];
+    if(GetEnvironmentVariableA(environment,value,sizeof(value))) return value[0]=='1';
+    return GetFileAttributesA(aotrPath(path,marker))!=INVALID_FILE_ATTRIBUTES;
+}
+#include "aotr_rotwk_gather.inc"
 static void installRotwkFxHooks() {
-    // Parent gate requires the complete .text hash 4404F3C6 at image base
+    // Parent gate requires complete .text hash 4404F3C6 or 88C193EE at image base
     // 400000. Check complete target bodies again immediately before patching.
+    g_rwPrepareEnabled=rwOptIn("AOTR_PARTICLEWORKERS","PARTICLE_WORKERS_ON");
+    installRotwkGather();
     if (rwEnabled("AOTR_PARTICLECOLOR")) {
         RwHook color = {0x5A7DF0,357,0x12FD16CD,6,(void*)hkRwParticleColor};
         g_rwColorScratch = (float*)VirtualAlloc(NULL,RW_COLOR_MAX*16,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);

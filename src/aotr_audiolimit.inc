@@ -39,11 +39,11 @@ static tAlPass o_alPass = NULL;
 #define AL_MAXENT 4096
 #define AL_HASHN  8192                                     // power of two, twice the entries
 struct AlEnt  { DWORD node, info; LONG next, dead; };
-struct AlSlot { DWORD key, epoch; LONG head, tail; };
+struct AlSlot { DWORD key, epoch; LONG head, tail, count; };
 static AlEnt  g_alEnt[AL_MAXENT];
 static AlSlot g_alInfo[AL_HASHN], g_alNode[AL_HASHN];
 static DWORD  g_alEpoch = 0, g_alMgr = 0, g_alHead = 0, g_alPassTid = 0;
-static LONG   g_alN = 0, g_alFirst = 0, g_alLast = -1, g_alUnkHead = -1, g_alUnkTail = -1;
+static LONG   g_alN = 0, g_alFirst = 0, g_alLast = -1, g_alUnkHead = -1, g_alUnkTail = -1, g_alUnknownN = 0;
 static volatile LONG g_alLive = 0, g_alDirty = 1, g_alInPass = 0, g_alSmall = 0, g_alPassRebuilds = 0, g_alProofLeft = 20000;
 static volatile LONG g_alCalls = 0, g_alIdx = 0, g_alRebuilds = 0, g_alStale = 0, g_alChecked = 0, g_alMismatch = 0, g_alFaults = 0, g_alTooBig = 0, g_alErased = 0, g_alMut = 0, g_alPasses = 0;
 static volatile LONG64 g_alWalkNodes = 0, g_alIdxEnts = 0, g_alBuildNodes = 0, g_alSavedNodes = 0;
@@ -76,7 +76,7 @@ static __forceinline AlSlot* alFind(AlSlot* tab, DWORD key) {
 static __forceinline AlSlot* alClaim(AlSlot* tab, DWORD key) {
     for (DWORD h = alHash(key), i = 0; i < AL_HASHN; ++i, h = (h + 1) & (AL_HASHN - 1)) {
         AlSlot& s = tab[h];
-        if (s.epoch != g_alEpoch) { s.epoch = g_alEpoch; s.key = key; s.head = s.tail = -1; return &s; }
+        if (s.epoch != g_alEpoch) { s.epoch = g_alEpoch; s.key = key; s.head = s.tail = -1; s.count=0; return &s; }
         if (s.key == key) return &s;
     }
     return NULL;
@@ -84,7 +84,7 @@ static __forceinline AlSlot* alClaim(AlSlot* tab, DWORD key) {
 static bool alBuild(DWORD mgr) {
     DWORD head = *(DWORD*)(ULONG_PTR)(mgr + 0x98);
     if (!++g_alEpoch) { memset(g_alInfo, 0, sizeof(g_alInfo)); memset(g_alNode, 0, sizeof(g_alNode)); g_alEpoch = 1; }
-    LONG n = 0; g_alUnkHead = g_alUnkTail = -1; g_alMgr = 0;
+    LONG n = 0; g_alUnkHead = g_alUnkTail = -1; g_alMgr = 0; g_alUnknownN=0;
     for (DWORD node = *(DWORD*)(ULONG_PTR)head; node != head; node = *(DWORD*)(ULONG_PTR)node) {
         if (n >= AL_MAXENT) { g_alTooBig++; return false; }
         DWORD req = *(DWORD*)(ULONG_PTR)(node + 8), ev = req ? *(DWORD*)(ULONG_PTR)(req + 4) : 0, info = ev ? *(DWORD*)(ULONG_PTR)(ev + 8) : 0;
@@ -94,8 +94,8 @@ static bool alBuild(DWORD mgr) {
         if (info) {
             AlSlot* is = alClaim(g_alInfo, info); if (!is) return false;
             if (is->tail >= 0) g_alEnt[is->tail].next = n; else is->head = n;
-            is->tail = n;
-        } else { if (g_alUnkTail >= 0) g_alEnt[g_alUnkTail].next = n; else g_alUnkHead = n; g_alUnkTail = n; }
+            is->tail = n; ++is->count;
+        } else { if (g_alUnkTail >= 0) g_alEnt[g_alUnkTail].next = n; else g_alUnkHead = n; g_alUnkTail = n; ++g_alUnknownN; }
         ++n;
     }
     g_alN = n; g_alFirst = 0; g_alLast = n - 1; g_alHead = head; g_alMgr = mgr;
@@ -140,7 +140,10 @@ static LONG alIndexed(DWORD mgr, DWORD event, bool* ok) {
     return c;
 }
 static LONG __stdcall alCount(DWORD mgr, DWORD event) {
-    ULONG64 t0 = __rdtsc();
+    ULONG64 t0 = 0;
+#ifndef AOTR_PROD
+    if(g_diag) t0 = __rdtsc();
+#endif
     LONG c, v = 0;
     g_alCalls++;
     bool use = false;
@@ -151,6 +154,14 @@ static LONG __stdcall alCount(DWORD mgr, DWORD event) {
             else g_alSmall = 1;                                                           // too long for the index: plain walks for the rest of this pass
         }
         use = !g_alDirty && !g_alSmall && mgr == g_alMgr;
+        if(use) {
+            DWORD info=*(DWORD*)(ULONG_PTR)(event+8);AlSlot* slot=alFind(g_alInfo,info);
+            // Live candidate validation is more expensive per entry than the
+            // plain loop. A dense bucket should walk; deleted entries merely
+            // make this conservative bound higher until the next pass rebuild.
+            LONG candidates=(slot?slot->count:0)+g_alUnknownN;
+            if(!info || (LONG64)candidates*4>=g_alN) use=false;
+        }
     }
     if (use) {
         bool ok = true;
@@ -170,7 +181,9 @@ static LONG __stdcall alCount(DWORD mgr, DWORD event) {
             } else g_alSavedNodes += g_alN;
         }
     } else { c = alWalk(mgr, event, &v); g_alWalkNodes += v; }
-    g_alTicks += __rdtsc() - t0;
+#ifndef AOTR_PROD
+    if(g_diag) g_alTicks += __rdtsc() - t0;
+#endif
     return c;
 }
 static void __fastcall hkAlPass(void* mgr, void* edx) {

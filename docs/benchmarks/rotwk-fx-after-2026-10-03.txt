@@ -1,0 +1,30 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.5.3
+** Copyright (c) 2022 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x86'
+rpmalloc.c
+rotwk_fx_test.cpp
+   Creating library rotwk_fx_report_test.lib and object rotwk_fx_report_test.exp
+PASS: six partial-install failures rolled back and full-body mismatch rejected
+PASS: 480 native color cases, full capacity, guards, NaNs/zeros and MXCSR; live wrapper proofs
+PASS: 600 native HLod cases: ordered callbacks, matrices, offsets, callback mutations, flags and MXCSR
+PASS: native ID lookup/observer links, duplicates/misses, collisions/capacity, insert/erase/null erase/clear/assignment/save-load and foreign-thread fallback
+rotwk_fx_test.cpp
+   Creating library rotwk_fx_prod_test.lib and object rotwk_fx_prod_test.exp
+PASS: six partial-install failures rolled back and full-body mismatch rejected
+PASS: 480 native color cases, full capacity, guards, NaNs/zeros and MXCSR; live wrapper proofs
+PASS: 600 native HLod cases: ordered callbacks, matrices, offsets, callback mutations, flags and MXCSR
+PASS: native ID lookup/observer links, duplicates/misses, collisions/capacity, insert/erase/null erase/clear/assignment/save-load and foreign-thread fallback
+BENCH particle color capacity 192: native 1077.56 ns, accelerated 357.57 ns, 3.01x (seven-sample median)
+BENCH particle color capacity 4096: native 92419.60 ns, accelerated 8428.00 ns, 10.97x (seven-sample median)
+BENCH particle color capacity 65536: native 2049117.20 ns, accelerated 133804.80 ns, 15.31x (seven-sample median)
+BENCH HLod 256 children, shared bone: native 5951.62 ns, accelerated 6088.80 ns, 0.98x (seven-sample median)
+BENCH HLod 256 children, 64 different bones: native 5965.58 ns, accelerated 7523.37 ns, 0.79x (seven-sample median)
+BENCH particle ID hit, 64 systems: native 86.92 ns, accelerated 16.79 ns, 5.18x (seven-sample median)
+BENCH particle ID hit, 256 systems: native 315.97 ns, accelerated 20.68 ns, 15.28x (seven-sample median)
+BENCH particle ID hit, 512 systems: native 644.78 ns, accelerated 26.85 ns, 24.02x (seven-sample median)
+BENCH particle ID churn, 256 systems, 1 lookups per erase/insert: native 272.65 ns, accelerated 275.50 ns, 0.99x (seven-sample median)
+BENCH particle ID churn, 256 systems, 8 lookups per erase/insert: native 1676.05 ns, accelerated 1964.70 ns, 0.85x (seven-sample median)
+BENCH particle ID churn, 256 systems, 32 lookups per erase/insert: native 6836.05 ns, accelerated 3800.35 ns, 1.80x (seven-sample median)
+BENCH particle ID churn, 256 systems, 128 lookups per erase/insert: native 27157.80 ns, accelerated 5927.50 ns, 4.58x (seven-sample median)

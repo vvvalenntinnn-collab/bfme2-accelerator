@@ -7,7 +7,7 @@ struct RwIdIndex {
     RwIdEntry ids[RW_ID_N];
     DWORD handles[RW_ID_N];
     BYTE* owner; BYTE* head;
-    DWORD queries;
+    DWORD queries, recentQueries, buildAfter;
     bool ready;
 };
 typedef DWORD (__fastcall* RwFindFn)(void*,void*,void*,DWORD);
@@ -35,7 +35,11 @@ static void rwIdInvalidate() {
         if (!InterlockedExchange(&g_rwIdKill,1)) logf("rotwk: foreign-thread particle-list mutation - ID index OFF.");
         return;
     }
-    g_rwIds->ready = false; g_rwIds->queries = 0;
+    // A burst that ends at eight lookups paid for a build and barely used it.
+    // Delay the next build to 32 after short bursts; longer quiet windows
+    // restore the eight-query startup policy. Saturation keeps steady hits lean.
+    if(g_rwIds->recentQueries) g_rwIds->buildAfter=g_rwIds->recentQueries<=8?32:8;
+    g_rwIds->ready = false; g_rwIds->queries = g_rwIds->recentQueries = 0;
 }
 static bool rwIdTrackedHandle(const void* handle) {
     if (!g_rwIds || !g_rwIds->ready) return false;
@@ -91,10 +95,14 @@ static DWORD __fastcall hkRwFind(void* self, void* edx, void* output, DWORD id) 
     BYTE* head = *(BYTE**)((BYTE*)self+0x4C);
     if (ix.owner != self || ix.head != head) {
         rwIdInvalidate(); ix.owner = (BYTE*)self; ix.head = head;
+        ix.buildAfter=8;
     }
+    if(ix.recentQueries<9) ++ix.recentQueries;
     // Avoid rebuilding for rapidly changing lists: the first seven queries
-    // after a mutation keep stock behavior. A failed build retries on mutation.
-    if (!ix.ready && ix.queries < 8 && ++ix.queries == 8 && head) ix.ready = rwIdBuild();
+    // after a mutation keep stock behavior (31 after recent short bursts).
+    // A failed build retries only on mutation, not on every later query.
+    DWORD threshold=ix.buildAfter?ix.buildAfter:8;
+    if (!ix.ready && ix.queries < threshold && ++ix.queries == threshold && head) ix.ready = rwIdBuild();
     BYTE* node = ix.ready ? rwIdFind(id) : NULL;
     if (!node) return g_rwFindOriginal(self,edx,output,id); // never cache misses
     BYTE* system = *(BYTE**)(node+8);

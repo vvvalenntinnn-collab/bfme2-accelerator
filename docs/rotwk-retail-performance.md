@@ -7,11 +7,25 @@ The enabled additions retain large staged uploads, fuse particle color packing/c
 positive particle-system lookups. A per-call HLod matrix cache was implemented and checked, but is
 **disabled by default**: it did not consistently outperform the stock routine.
 
+The [synthetic implementation follow-up](rotwk-synthetic-implementation-2026-10-03.md) adds guarded
+retail sort/push/erase, audio indexing, adaptive ID rebuilds, physical-core placement and coarse
+profiling. Joined particle workers and selected-particle gathering are experimental and off by default.
+
 ## Supported executable and switches
 
-The engine additions target the executable supplied as
-`C:\Users\vvval\Downloads\game (1)\game.dat`: image base `00400000`, complete `.text` FNV-1a `4404F3C6`.
-Matching header metadata alone is insufficient. This file remains in the limited-capability build
+The engine additions support two independently verified inputs at image base `00400000`:
+
+- `C:\Users\vvval\Downloads\game (1)\game.dat`: complete `.text` FNV-1a `4404F3C6`,
+  image size `00AD3000`, checksum `00ADC2F6`.
+- The inspected `C:\RotWK\lotrbfme2ep1.exe`: complete `.text` FNV-1a `88C193EE`,
+  image size `00AD4000`, checksum `00AE0F79`.
+
+Both have timestamp `460DA09E` and entry RVA `0063D082`. The direct executable differs in 176
+code bytes, but all nine particle/pose/handle routine bodies checked by the fixture are identical.
+Native reporting and production differential tests passed separately using this direct executable.
+The DLL independently applies its complete code hash and routine body checks.
+
+Matching header metadata alone is insufficient. Both remain in the limited-capability build
 category; it does not inherit the older `5ED63115` build's complete address table or pose workers.
 Future RotWK/2.02/Age of the Ring executables with different code receive portable acceleration only
 until their engine routines are independently checked.
@@ -22,6 +36,12 @@ until their engine routines are independently checked.
 | `AOTR_PARTICLECOLOR=0` | Enabled on the exact supported executable | Fused full-capacity color packing |
 | `AOTR_PARTICLEINDEX=0` | Enabled on the exact supported executable | Positive ID lookup index |
 | `AOTR_POSEMATRIX=1` | **Disabled** | Explicitly opt into the experimental HLod matrix cache |
+| `AOTR_RLSORT=0` | Enabled on verified targets | Disable sort/push/erase installation |
+| `AOTR_RLPUSH=0` | Enabled | Keep push/erase native while retaining sorting |
+| `AOTR_AUDIOLIMIT=0` | Enabled on verified targets | Disable audio indexing |
+| `AOTR_PARTICLEWORKERS=1` | **Disabled** | Joined preparation for eligible large particle packs |
+| `AOTR_PARTICLEGATHER=1` | **Disabled** | Experimental fused selected-particle gather |
+| `AOTR_WORKERPLACEMENT=0` | Enabled | Disable physical-core render-worker placement hints |
 
 Color and ID acceleration wait for the render recorder to identify the game thread. Unidentified or
 foreign-thread lookups use the original routines. Color/pose use stock code with unmasked SSE exceptions.
@@ -59,7 +79,7 @@ call in 64 is checked. Any byte mismatch disables the fused pass for the session
 ## Positive particle-system ID lookup
 
 The legacy manager walks its ordered list of weak handles. The replacement builds a bounded index
-after eight queries without intervening mutation, for lists of at least 32 nodes. The 8,192-slot
+after eight queries without intervening mutation, or 32 after a recent short burst, for lists of at least 32 nodes. Longer quiet windows restore the eight-query policy. The 8,192-slot
 tables use bounded linear probing; excessive collisions or more than 4,096 nodes leave lookup stock.
 Only successful IDs are indexed; misses and ID zero always use the original walk. Duplicate IDs retain
 the first list node, exactly as the walk does. Returned handles are constructed by the original
@@ -125,7 +145,7 @@ using the base accelerator and this version, to establish average and slow-frame
 
 ## Validation
 
-No game/mod is installed here. The fixture runs retail routines in a private suspended child process
+The fixture runs retail routines in a private suspended child process
 with mock game objects/callbacks; it never starts the game. Animation-base work and allocator entry
 points are replaced only in that private mapping. Actual Age of the Ring battles, rendered frames,
 multiplayer and driver behavior still need in-game validation.

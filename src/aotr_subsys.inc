@@ -25,7 +25,9 @@ static void ssNote(int i, void* c) {                                   // once p
     g_ssSeen[i] = 1;
     __try {
         DWORD vt = *(DWORD*)c, fn = *(DWORD*)(ULONG_PTR)(vt + kSsSlot[i]);
-        logf("subsys: %s = object %08X vtable game.dat+%06X target game.dat+%06X", kSsName[i], (DWORD)(ULONG_PTR)c, vt - 0x400000, fn - 0x400000);
+        char vtName[160], fnName[160];
+        symName(vt, vtName); symName(fn, fnName);
+        logf("subsys: %s = object %08X vtable %s target %s", kSsName[i], (DWORD)(ULONG_PTR)c, vtName, fnName);
     } __except (EXCEPTION_EXECUTE_HANDLER) {}
 }
 static DWORD __fastcall ssS0(void* c, void* d) { if (!g_ssSeen[0]) ssNote(0, c); ULONG64 t = __rdtsc(); DWORD r = ((tSsT0)(ULONG_PTR)(*(DWORD**)c)[0x6C / 4])(c, d); SS_ACC(0, t); return r; }

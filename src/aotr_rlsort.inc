@@ -56,27 +56,28 @@ static bool rlFastOnCopy(RlEl* begin, DWORD n, tRlPred pred) {
     __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 }
 static void __cdecl hkRlSort(RlEl* begin, RlEl* end, tRlPred pred) {
+    if (!g_mkTid || GetCurrentThreadId() != g_mkTid) { o_rlSort(begin, end, pred); return; }
     LONG ph = g_phase; if (ph < 0 || ph >= PH_N) ph = PH_OTHER;
     DWORD n = (DWORD)(end - begin);
-    LONG64 t0 = qpcNow();
+    LONG64 t0 = 0; PSTAT(if(g_diag) t0 = qpcNow());
     if (!g_rlLive || g_rlOff || !g_mkTid) {
         o_rlSort(begin, end, pred);
     } else if (GetCurrentThreadId() == g_mkTid && (g_rlCheckLeft > 0 ? (g_rlCheckLeft--, true) : ((++g_rlTick & 127) == 0)) && rlTmpFor(n)) {
         bool ok = rlFastOnCopy(begin, n, pred);
-        LONG64 t1 = qpcNow();
+        LONG64 t1 = 0; PSTAT(if(g_diag) t1 = qpcNow());
         o_rlSort(begin, end, pred);
-        LONG64 t2 = qpcNow();
+        LONG64 t2 = 0; PSTAT(if(g_diag) t2 = qpcNow());
         if (!ok) { if (!g_rlFaults++) logf("rlsort: replacement faulted on a list of %u - stock sort for the rest of the session.", n); g_rlOff = 1; }
         else if (memcmp(g_rlTmp, begin, n * sizeof(RlEl))) {
             if (!g_rlMismatch++) logf("rlsort: SELF-CHECK MISMATCH on a list of %u (comparator %08X) - stock sort for the rest of the session.", n, (DWORD)(ULONG_PTR)pred);
             g_rlOff = 1;
-        } else { g_rlChecks++; g_rlCheckFastT += t1 - t0; g_rlCheckStockT += t2 - t1; }
-        g_rlSortT[ph] += t2 - t0; g_rlSorts[ph]++; g_rlEls[ph] += (LONG)n;
+        } else { g_rlChecks++; PSTAT(g_rlCheckFastT += t1 - t0; g_rlCheckStockT += t2 - t1); }
+        PSTAT(g_rlSortT[ph] += t2 - t0; g_rlSorts[ph]++; g_rlEls[ph] += (LONG)n);
         return;
     } else {
         rlFastSort(begin, end, pred);
     }
-    g_rlSortT[ph] += qpcNow() - t0; g_rlSorts[ph]++; g_rlEls[ph] += (LONG)n;
+    PSTAT(g_rlSortT[ph] += qpcNow() - t0; g_rlSorts[ph]++; g_rlEls[ph] += (LONG)n);
 }
 static void __fastcall hkRlFlush(void* self, void* edx) {
     LONG ph = g_phase; if (ph < 0 || ph >= PH_N) ph = PH_OTHER;
@@ -105,9 +106,10 @@ static bool rlPushMatches(DWORD* r, DWORD mesh, const DWORD* lights, DWORD* v, D
     return true;
 }
 static void __fastcall hkRlPush(DWORD* self, void* edx, DWORD mesh, DWORD* lights) {
+    if (!g_mkTid || GetCurrentThreadId() != g_mkTid) { o_rlPush(self, edx, mesh, lights); return; }
     if (g_capOn) capPrintf("T push list=%08X mesh=%08X lights=%u\n", (DWORD)(ULONG_PTR)self, mesh, (DWORD)((LONG)(lights[1] - lights[0]) >> 2));
     LONG ph = g_phase; if (ph < 0 || ph >= PH_N) ph = PH_OTHER;
-    ULONG64 t0 = g_diag ? __rdtsc() : 0;
+    ULONG64 t0 = 0; PSTAT(if(g_diag) t0=__rdtsc());
     if (!g_rlPushLive || g_rlPushOff || !g_mkTid) {
         o_rlPush(self, edx, mesh, lights);
     } else if (GetCurrentThreadId() == g_mkTid && (g_rlPushCheckLeft > 0 ? (g_rlPushCheckLeft--, true) : ((++g_rlPushTick & 511) == 0))) {
@@ -129,17 +131,17 @@ static void __fastcall hkRlPush(DWORD* self, void* edx, DWORD mesh, DWORD* light
     } else if (!rlPushFast(self, mesh, lights)) {
         o_rlPush(self, edx, mesh, lights); g_rlPushStock++;
     }
-    if (g_diag) g_rlPushT[ph] += (LONG64)(__rdtsc() - t0);
+    PSTAT(if(g_diag) g_rlPushT[ph] += (LONG64)(__rdtsc() - t0));
     PSTAT(g_rlPushN[ph]++);
 }
 static DWORD __fastcall hkRlErase(DWORD* v, void* edx, DWORD first, DWORD last) {
     LONG ph = g_phase; if (ph < 0 || ph >= PH_N) ph = PH_OTHER;
-    ULONG64 t0 = g_diag ? __rdtsc() : 0;
+    ULONG64 t0 = 0; PSTAT(if(g_diag) t0=__rdtsc());
     LONG els = (LONG)((last - first) >> 5);
     DWORD r;
     if (g_rlPushLive && !g_rlPushOff && g_mkTid && GetCurrentThreadId() == g_mkTid && rlEraseTailFast(v, first, last)) r = first;
     else r = o_rlErase(v, edx, first, last);
-    if (g_diag) g_rlEraseT[ph] += (LONG64)(__rdtsc() - t0);
+    PSTAT(if(g_diag) g_rlEraseT[ph] += (LONG64)(__rdtsc() - t0));
     PSTAT(g_rlEraseN[ph]++; g_rlEraseEls[ph] += els);
     return r;
 }

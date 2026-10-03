@@ -1,0 +1,83 @@
+capture,build,workload,baseline_ns,candidate_ns,baseline_over_candidate
+rotwk-work-2026-10-03.txt,reporting,render list 2500 entries,729056.50,28640.50,25.46
+rotwk-work-2026-10-03.txt,production,render list 2500 entries,763834.50,28345.00,26.95
+rotwk-work-2026-10-03.txt,production,1 cores color capacity 192,759.01,237.43,3.20
+rotwk-work-2026-10-03.txt,production,1 cores color capacity 4096,16941.80,5038.10,3.36
+rotwk-work-2026-10-03.txt,production,1 cores color capacity 65536,296650.80,92064.00,3.22
+rotwk-work-2026-10-03.txt,production,1 cores joined pool versus serial SIMD color 32768,43161.10,43354.40,1.00
+rotwk-work-2026-10-03.txt,production,1 cores joined pool versus serial SIMD color 65536,126823.30,125567.70,1.01
+rotwk-work-2026-10-03.txt,production,1 cores audio count 192 requests/64 sounds,553.15,81.40,6.80
+rotwk-work-2026-10-03.txt,production,1 cores audio count 512 requests/64 sounds,1432.95,187.20,7.65
+rotwk-work-2026-10-03.txt,production,1 cores audio count 4096 requests/64 sounds,13202.80,1842.95,7.16
+rotwk-work-2026-10-03.txt,production,1 cores audio dense bucket 512 requests/1 sound,1138.50,1257.55,0.91
+rotwk-work-2026-10-03.txt,production,1 cores selected-particle gather 192,1274.80,1698.20,0.75
+rotwk-work-2026-10-03.txt,production,1 cores selected-particle gather 4096,28629.60,34506.80,0.83
+rotwk-work-2026-10-03.txt,production,1 cores selected-particle gather 65536,455858.00,636323.20,0.72
+rotwk-work-2026-10-03.txt,production,1 cores dense CPU workload 2500 meshes/512 requests/64x4096 colors,2533776.00,481266.00,5.26
+rotwk-work-2026-10-03.txt,production,1 cores dense CPU workload 10000 meshes/4096 requests/64x4096 colors,47791610.00,8418550.00,5.68
+rotwk-work-2026-10-03.txt,production,2 cores color capacity 192,1169.61,358.13,3.27
+rotwk-work-2026-10-03.txt,production,2 cores color capacity 4096,25387.60,7470.80,3.40
+rotwk-work-2026-10-03.txt,production,2 cores color capacity 65536,356420.50,124685.40,2.86
+rotwk-work-2026-10-03.txt,production,2 cores joined pool versus serial SIMD color 32768,43382.70,42652.00,1.02
+rotwk-work-2026-10-03.txt,production,2 cores joined pool versus serial SIMD color 65536,93084.10,92358.70,1.01
+rotwk-work-2026-10-03.txt,production,2 cores audio count 192 requests/64 sounds,359.65,54.00,6.66
+rotwk-work-2026-10-03.txt,production,2 cores audio count 512 requests/64 sounds,959.70,120.50,7.96
+rotwk-work-2026-10-03.txt,production,2 cores audio count 4096 requests/64 sounds,8569.25,1331.05,6.44
+rotwk-work-2026-10-03.txt,production,2 cores audio dense bucket 512 requests/1 sound,742.50,838.05,0.89
+rotwk-work-2026-10-03.txt,production,2 cores selected-particle gather 192,854.60,1122.40,0.76
+rotwk-work-2026-10-03.txt,production,2 cores selected-particle gather 4096,18761.40,23808.60,0.79
+rotwk-work-2026-10-03.txt,production,2 cores selected-particle gather 65536,463189.80,647708.00,0.72
+rotwk-work-2026-10-03.txt,production,2 cores dense CPU workload 2500 meshes/512 requests/64x4096 colors,3690662.00,693226.00,5.32
+rotwk-work-2026-10-03.txt,production,2 cores dense CPU workload 10000 meshes/4096 requests/64x4096 colors,40878980.00,5663370.00,7.22
+rotwk-work-2026-10-03.txt,production,3 cores color capacity 192,796.05,253.13,3.14
+rotwk-work-2026-10-03.txt,production,3 cores color capacity 4096,17534.60,5136.50,3.41
+rotwk-work-2026-10-03.txt,production,3 cores color capacity 65536,430107.30,73851.40,5.82
+rotwk-work-2026-10-03.txt,production,3 cores joined pool versus serial SIMD color 32768,63092.60,40908.40,1.54
+rotwk-work-2026-10-03.txt,production,3 cores joined pool versus serial SIMD color 65536,92442.90,52113.30,1.77
+rotwk-work-2026-10-03.txt,production,3 cores audio count 192 requests/64 sounds,359.65,53.75,6.69
+rotwk-work-2026-10-03.txt,production,3 cores audio count 512 requests/64 sounds,964.05,127.25,7.58
+rotwk-work-2026-10-03.txt,production,3 cores audio count 4096 requests/64 sounds,8513.10,1356.20,6.28
+rotwk-work-2026-10-03.txt,production,3 cores audio dense bucket 512 requests/1 sound,793.10,822.60,0.96
+rotwk-work-2026-10-03.txt,production,3 cores selected-particle gather 192,830.60,1163.00,0.71
+rotwk-work-2026-10-03.txt,production,3 cores selected-particle gather 4096,20381.80,22664.40,0.90
+rotwk-work-2026-10-03.txt,production,3 cores selected-particle gather 65536,308885.60,305369.40,1.01
+rotwk-work-2026-10-03.txt,production,3 cores dense CPU workload 2500 meshes/512 requests/64x4096 colors,2599066.00,507000.00,5.13
+rotwk-work-2026-10-03.txt,production,3 cores dense CPU workload 10000 meshes/4096 requests/64x4096 colors,61606130.00,8505090.00,7.24
+rotwk-work-2026-10-03.txt,production,4 cores color capacity 192,792.64,249.24,3.18
+rotwk-work-2026-10-03.txt,production,4 cores color capacity 4096,17355.20,5033.80,3.45
+rotwk-work-2026-10-03.txt,production,4 cores color capacity 65536,295229.80,36192.40,8.16
+rotwk-work-2026-10-03.txt,production,4 cores joined pool versus serial SIMD color 32768,44121.30,19731.30,2.24
+rotwk-work-2026-10-03.txt,production,4 cores joined pool versus serial SIMD color 65536,99826.60,37907.20,2.63
+rotwk-work-2026-10-03.txt,production,4 cores audio count 192 requests/64 sounds,514.60,77.75,6.62
+rotwk-work-2026-10-03.txt,production,4 cores audio count 512 requests/64 sounds,1425.90,189.35,7.53
+rotwk-work-2026-10-03.txt,production,4 cores audio count 4096 requests/64 sounds,13129.05,1895.50,6.93
+rotwk-work-2026-10-03.txt,production,4 cores audio dense bucket 512 requests/1 sound,1143.35,1252.15,0.91
+rotwk-work-2026-10-03.txt,production,4 cores selected-particle gather 192,1261.40,1704.80,0.74
+rotwk-work-2026-10-03.txt,production,4 cores selected-particle gather 4096,28655.40,33665.00,0.85
+rotwk-work-2026-10-03.txt,production,4 cores selected-particle gather 65536,454679.40,319803.00,1.42
+rotwk-work-2026-10-03.txt,production,4 cores dense CPU workload 2500 meshes/512 requests/64x4096 colors,2530872.00,491486.00,5.15
+rotwk-work-2026-10-03.txt,production,4 cores dense CPU workload 10000 meshes/4096 requests/64x4096 colors,41094940.00,5949740.00,6.91
+rotwk-fx-before-2026-10-03.txt,production,particle color capacity 192,811.44,285.78,2.84
+rotwk-fx-before-2026-10-03.txt,production,particle color capacity 4096,66626.00,6192.00,10.76
+rotwk-fx-before-2026-10-03.txt,production,particle color capacity 65536,1980115.80,166111.20,11.92
+rotwk-fx-before-2026-10-03.txt,production,"HLod 256 children, shared bone",4257.52,4409.35,0.97
+rotwk-fx-before-2026-10-03.txt,production,"HLod 256 children, 64 different bones",4421.50,5492.41,0.81
+rotwk-fx-before-2026-10-03.txt,production,"particle ID hit, 64 systems",59.99,11.32,5.30
+rotwk-fx-before-2026-10-03.txt,production,"particle ID hit, 256 systems",202.50,12.94,15.65
+rotwk-fx-before-2026-10-03.txt,production,"particle ID hit, 512 systems",409.34,18.09,22.63
+rotwk-fx-before-2026-10-03.txt,production,"particle ID churn, 256 systems, 1 lookups per erase/insert",283.60,305.60,0.93
+rotwk-fx-before-2026-10-03.txt,production,"particle ID churn, 256 systems, 8 lookups per erase/insert",1760.50,3582.40,0.49
+rotwk-fx-before-2026-10-03.txt,production,"particle ID churn, 256 systems, 32 lookups per erase/insert",6672.25,3932.10,1.70
+rotwk-fx-before-2026-10-03.txt,production,"particle ID churn, 256 systems, 128 lookups per erase/insert",26040.00,5164.35,5.04
+rotwk-fx-after-2026-10-03.txt,production,particle color capacity 192,1077.56,357.57,3.01
+rotwk-fx-after-2026-10-03.txt,production,particle color capacity 4096,92419.60,8428.00,10.97
+rotwk-fx-after-2026-10-03.txt,production,particle color capacity 65536,2049117.20,133804.80,15.31
+rotwk-fx-after-2026-10-03.txt,production,"HLod 256 children, shared bone",5951.62,6088.80,0.98
+rotwk-fx-after-2026-10-03.txt,production,"HLod 256 children, 64 different bones",5965.58,7523.37,0.79
+rotwk-fx-after-2026-10-03.txt,production,"particle ID hit, 64 systems",86.92,16.79,5.18
+rotwk-fx-after-2026-10-03.txt,production,"particle ID hit, 256 systems",315.97,20.68,15.28
+rotwk-fx-after-2026-10-03.txt,production,"particle ID hit, 512 systems",644.78,26.85,24.02
+rotwk-fx-after-2026-10-03.txt,production,"particle ID churn, 256 systems, 1 lookups per erase/insert",272.65,275.50,0.99
+rotwk-fx-after-2026-10-03.txt,production,"particle ID churn, 256 systems, 8 lookups per erase/insert",1676.05,1964.70,0.85
+rotwk-fx-after-2026-10-03.txt,production,"particle ID churn, 256 systems, 32 lookups per erase/insert",6836.05,3800.35,1.80
+rotwk-fx-after-2026-10-03.txt,production,"particle ID churn, 256 systems, 128 lookups per erase/insert",27157.80,5927.50,4.58

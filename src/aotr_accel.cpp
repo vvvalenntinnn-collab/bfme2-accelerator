@@ -3,10 +3,10 @@
 // Design constraints (must survive Age of the Ring / 2.02 updates):
 //   * Nothing is written into the game folder. The AotR launcher deletes stray files and
 //     verifies checksums on every start, so we inject at runtime and touch only memory.
-//   * game.dat on disk is never modified, so the launcher's checksum always passes.
-//   * Functions are found by wildcarded byte signature, never by hardcoded address.
-//     If a signature is missing or ambiguous we install nothing and log it: after a game
-//     update the worst case is "no acceleration", never a crash.
+//   * The engine file (.exe or game.dat) is never modified on disk.
+//   * Portable hooks use vtables, named imports and signatures. Engine addresses
+//     require the matching executable identity and independently verified code.
+//     Missing/ambiguous signatures or body mismatches leave that capability native.
 //
 // Stage 1 measures AIUpdateInterface::doPathfind (positively identified by its 13
 // "CritterDesync: doPathfindN" strings) and records the caller's return address, which
@@ -32,6 +32,20 @@ static char kLogPath[MAX_PATH] = "";
 static volatile LONG g_engineHooks = 0;   // may this build's absolute addresses be patched?
 static bool g_bfme2Hooks = false;         // independently verified BFME2 1.06 hooks
 static bool g_rotwkFxHooks = false;       // independently verified RotWK retail particle/pose hooks
+static char g_gameModulePath[MAX_PATH] = "";
+static char g_gameModuleName[96] = "engine";
+static bool g_profileMapVerified = false; // gd_funcs.inc/focus addresses describe only the legacy 2.02 image
+static void aotrSetGameIdentity(HMODULE module) {
+    DWORD n = GetModuleFileNameA(module, g_gameModulePath, sizeof(g_gameModulePath));
+    if (!n || n >= sizeof(g_gameModulePath)) {
+        g_gameModulePath[0] = 0;
+        lstrcpyA(g_gameModuleName, "engine");
+        return;
+    }
+    const char* leaf = g_gameModulePath;
+    for (const char* p = leaf; *p; ++p) if (*p == '\\' || *p == '/') leaf = p + 1;
+    lstrcpynA(g_gameModuleName, leaf, sizeof(g_gameModuleName));
+}
 static void aotrSetDir(HMODULE self) {
     char p[MAX_PATH];
     DWORD n = GetModuleFileNameA(self, p, MAX_PATH);
@@ -67,10 +81,15 @@ static void logf(const char* fmt, ...) {
     int n = wsprintfA(line, "%02d:%02d:%02d.%03d  ", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
     va_list ap;
     va_start(ap, fmt);
-    n += wvsprintfA(line + n, fmt, ap);
+    // Crash stacks and long executable paths can exceed this buffer. Leave
+    // room for CRLF and retain a complete, bounded log record on truncation.
+    int body = _vsnprintf_s(line + n, sizeof(line) - n, _TRUNCATE, fmt, ap);
     va_end(ap);
+    n += body >= 0 ? body : (int)strlen(line + n);
+    if (n > (int)sizeof(line) - 3) n = sizeof(line) - 3;
     line[n++] = '\r';
     line[n++] = '\n';
+    line[n] = 0;
 
     EnterCriticalSection(&g_logCs);
     HANDLE h = CreateFileA(kLogPath, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -415,9 +434,10 @@ static int __fastcall hk_doPathfind(void* ecx, void* edx, void* pathfinder) {
 }
 
 // ---------------------------------------------------------------- particle subsystem (offload target)
-// W3DFXParticleSystem.cpp per-frame entry at 0044C813 (2.02/AotR): __thiscall(this, arg1) -
-// prologue push ebp/mov ebp,esp/push esi/mov esi,ecx, terminates in 'leave; ret 4' (1 arg).
-// Stage 1 (here): time it. Stage 2 (next) splits its per-particle work across worker cores.
+// Historical, uninstalled probe at 0044C813: the supplied retail image shows
+// a container append with a 12-byte element stride and an allocation fallback.
+// It is not an established particle-manager update or a particle offload boundary.
+// Recover the actual update callers before reusing this probe for measurements.
 // 24 template-clone functions share the generic prologue and differ only in the call's rel32,
 // so for the measurement build we pin the exact bytes (rel32 included) - unique to 0044C813 on
 // this game.dat. If an update moves it, the scan fails closed (no measurement, never a crash).
@@ -1296,7 +1316,7 @@ static void installPerfMarkers(bool first) {
         if (memcmp((void*)0x0051ECE7, sigBegin, sizeof(sigBegin)) != 0 ||
             memcmp((void*)0x0051ED60, sigEnd,   sizeof(sigEnd))   != 0 ||
             memcmp((void*)0x00517690, sigCtor,  sizeof(sigCtor))  != 0) {
-            if (first) logf("stages: perf-event code mismatch (different game.dat build) - stage timers OFF.");
+            if (first) logf("stages: perf-event code mismatch (different engine build) - stage timers OFF.");
             return;
         }
         void* curB = *g_perfSlotBegin; void* curE = *g_perfSlotEnd;
@@ -2078,7 +2098,7 @@ static ExpMod* expFor(DWORD base) {
     return m;
 }
 static void symName(DWORD addr, char* out) {
-    if (addr >= g_gameBase && addr < g_gameEnd) { wsprintfA(out, "game.dat+%06X", addr - g_gameBase); return; }
+    if (addr >= g_gameBase && addr < g_gameEnd) { wsprintfA(out, "%s+%06X", g_gameModuleName, addr - g_gameBase); return; }
     int mi = pmOf(addr);
     if (mi < 0) { wsprintfA(out, "?%08X", addr); return; }
     DWORD rva = addr - g_pm[mi].base;
@@ -2231,7 +2251,7 @@ static void battleReport() {
                 int j = ni; if (ni < 24) ni++; else if (cnt <= ti[23].count) continue; else j = 23;
                 while (j > 0 && ti[j - 1].count < cnt) { ti[j] = ti[j - 1]; --j; }
                 ti[j] = ct.inclA[i]; }
-            char line2[900]; int q = wsprintfA(line2, "      on-stack game.dat return addresses:");
+            char line2[900]; int q = wsprintfA(line2, "      on-stack engine return addresses:");
             for (int i = 0; i < ni && q < 840; ++i) q += wsprintfA(line2 + q, " %08X:%s%%", ti[i].key, pctStr(ti[i].count, ct.nA, m1));
             logf("%s", line2);
         }
@@ -2380,6 +2400,7 @@ static void rotateLog() {
 #include "aotr_rt.inc"
 #include "aotr_bfme2.inc"
 #include "aotr_rotwk_particles.inc"
+#include "aotr_rotwk_work.inc"
 
 // ---------------------------------------------------------------- game-thread sampler v2 (RT build)
 // 100 samples/s of the game's render thread while frames are heavy (>= 30 ms) and the render thread is live.
@@ -2404,6 +2425,7 @@ static LONG g_gsN = 0, g_gsDrop = 0, g_gsNP[PH_NX];
 static LONG g_gsFrames = 0;
 static LONG64 g_gsPeriod = 0;
 static DWORD gsFunc(DWORD a) {
+    if (!g_profileMapVerified) return 0;
     if (a < 0x00401000 || a >= 0x00BD0000) return 0;
     int lo = 0, hi = kGameFuncCount - 1, best = -1;
     while (lo <= hi) { int mid = (lo + hi) >> 1; if (kGameFuncs[mid] <= a) { best = mid; lo = mid + 1; } else hi = mid - 1; }
@@ -2526,7 +2548,7 @@ static DWORD WINAPI gsThread(LPVOID) {
                     gsDumpAgg(g_gsInclP[p], false, w2, 60, g_gsN);
                     gsDumpPaths(g_gsPath[p], kTabName[p], 30, g_gsN);
                 }
-                gsDumpAgg(g_gsBound, false, "outside game.dat, by first game.dat return address:", 40, g_gsN);
+                gsDumpAgg(g_gsBound, false, "outside engine image, by first engine return address:", 40, g_gsN);
                 for (int k = 0; k < GS_FOCUS; ++k) {
                     if (g_gsFocN[k] >= 15 && g_gsFocSelf[k]) {
                         char w1[96], w2[96]; wsprintfA(w1, "focus %s: %d of %d samples; self (%% of the subtree):", kGsFocusName[k], (int)g_gsFocN[k], (int)g_gsN); wsprintfA(w2, "focus %s inner functions (%% of the subtree):", kGsFocusName[k]);
@@ -2597,6 +2619,14 @@ static DWORD WINAPI gsThread(LPVOID) {
     return 0;
 }
 static void startGameSampler() {
+    if (!g_profileMapVerified) {
+        logf("gs: sampler OFF for %s - legacy function map and phase hooks are not verified for this image.", g_gameModuleName);
+        return;
+    }
+#ifdef AOTR_PROD
+    logf("gs: sampler OFF in production; use build_new.bat for reporting.");
+    return;
+#endif
     g_gsBound = (LeafEnt*)VirtualAlloc(NULL, GS_TAB * sizeof(LeafEnt), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     for (int p = 0; p < PH_NX; ++p) {
         g_gsSelfP[p] = (LeafEnt*)VirtualAlloc(NULL, GS_TAB * sizeof(LeafEnt), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -2621,13 +2651,15 @@ static DWORD WINAPI initThread(LPVOID) {
     HMODULE hGame = GetModuleHandleA("game.dat");
     if (!hGame) hGame = GetModuleHandleA(NULL);
     if (!hGame) { logf("FATAL: cannot find game module"); return 0; }
+    aotrSetGameIdentity(hGame);
+    logf("engine image: %s (module %s)", g_gameModulePath[0] ? g_gameModulePath : "path unavailable", g_gameModuleName);
 
     IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)hGame;
     IMAGE_NT_HEADERS* nt = (IMAGE_NT_HEADERS*)((BYTE*)hGame + dos->e_lfanew);
     BYTE* base = (BYTE*)hGame;
     SIZE_T imgSize = nt->OptionalHeader.SizeOfImage;
-    logf("game module base %08X, size %08X, checksum %08X, timestamp %08X",
-         (DWORD)(ULONG_PTR)base, (DWORD)imgSize,
+    logf("engine module %s base %08X, size %08X, checksum %08X, timestamp %08X",
+         g_gameModuleName, (DWORD)(ULONG_PTR)base, (DWORD)imgSize,
          nt->OptionalHeader.CheckSum, nt->FileHeader.TimeDateStamp);
 
     // ---------------------------------------------------------------- which build is this, and what may be installed
@@ -2665,6 +2697,7 @@ static DWORD WINAPI initThread(LPVOID) {
             { 0x8C81C601, 0x460DA09E, 0x00ACA000, 0x00BAF85F, 0x0063D082, "RotWK 2.02 build 820",                           false },
             { 0x32667B9B, 0x00564544, 0x00ADA000, 0x00BC0776, 0x00629306, "BFME2",                                          false },
             { 0x4404F3C6, 0x460DA09E, 0x00AD3000, 0x00ADC2F6, 0x0063D082, "RotWK retail (particle/pose capabilities)",       false },
+            { 0x88C193EE, 0x460DA09E, 0x00AD4000, 0x00AE0F79, 0x0063D082, "RotWK direct executable (particle/pose capabilities)", false },
         };
         const Build* hit = NULL;
         for (int i = 0; i < (int)(sizeof(kBuilds) / sizeof(kBuilds[0])); ++i)
@@ -2676,10 +2709,11 @@ static DWORD WINAPI initThread(LPVOID) {
                       GetModuleHandleA("msvcr71.dll") && GetModuleHandleA("mss32.dll");
         if (hit) {
             g_engineHooks = hit->engineHooks ? 1 : 0;
+            g_profileMapVerified = textHash == 0x5ED63115 && (DWORD)(ULONG_PTR)base == 0x00400000;
             g_bfme2Hooks = textHash == 0x32667B9B && (DWORD)(ULONG_PTR)base == 0x00400000;
-            g_rotwkFxHooks = textHash == 0x4404F3C6 && (DWORD)(ULONG_PTR)base == 0x00400000;
+            g_rotwkFxHooks = (textHash == 0x4404F3C6 || textHash == 0x88C193EE) && (DWORD)(ULONG_PTR)base == 0x00400000;
             logf("init: %s (.text %08X). %s", hit->name, textHash,
-                 g_engineHooks ? "Everything is installed." : g_bfme2Hooks ?
+                 g_engineHooks ? "Legacy engine hooks are eligible; individual checks and switches determine activation." : g_bfme2Hooks ?
                  "Portable accelerators plus independently checked BFME2 equivalence and mesh-picking hooks are eligible." :
                  g_rotwkFxHooks ? "Portable accelerators plus independently checked RotWK particle/pose hooks are eligible." :
                  "Only the parts that do not depend on this build's addresses are installed (render thread, heap, preshader cache, fast CRT).");
@@ -2696,8 +2730,8 @@ static DWORD WINAPI initThread(LPVOID) {
                 logf("init: this is not a build this DLL knows (.text %08X, loaded at %08X) - installing EVERYTHING anyway, "
                      "ANY_BINARY_OK is present. A crash is the expected outcome.", textHash, (DWORD)(ULONG_PTR)base);
             } else {
-                logf("init: this does not look like a BFME2-era game.dat (.text %08X, loaded at %08X). NOTHING installed - "
-                     "the game runs exactly as it would without this DLL.", textHash, (DWORD)(ULONG_PTR)base);
+                logf("init: %s does not look like a BFME2-era engine image (.text %08X, loaded at %08X). NOTHING installed - "
+                     "the game runs exactly as it would without this DLL.", g_gameModuleName, textHash, (DWORD)(ULONG_PTR)base);
                 return 0;
             }
         }
@@ -2746,12 +2780,23 @@ static DWORD WINAPI initThread(LPVOID) {
         if (g_capBuf) { g_capWanted = 1; g_diag = 1; }
         logf("capture: %s", g_capBuf ? "ON - three rounds of two battle frames each will be written to capture_<n>.txt (diagnostics forced on)." : "requested, but the capture buffer could not be allocated - OFF.");
     }
-    logf("init: diagnostics %s.", g_diag ? "ON: per-call timers and the game-thread sampler are installed (~2 ms per battle frame)" : "off - lean build: no per-call timers, no sampler (marker file DIAG_ON turns them on)");
+    logf("init: diagnostics %s.", g_diag ? "requested: legacy timers/sampler require the verified legacy image and a reporting build" : "off - lean build: no per-call timers, no sampler (marker file DIAG_ON turns them on)");
+    if (!g_engineHooks)
+        logf("init: legacy phase map unavailable for %s; verified retail coarse timers are considered separately. Frame intervals use queued Present submissions; zero phase fields mean unmeasured. This is not display FPS.", g_gameModuleName);
 #ifdef AOTR_PROD
-    if (g_diag) logf("init: NOTE - this is the production build. The timers are installed but nothing reports them and the counters are compiled out; build with build_new.bat for a diagnostic run.");
+    if (g_diag) logf("init: diagnostic reporting is unavailable in this production build; use build_new.bat for a diagnostic run.");
 #endif
     penv[0] = 0;
-    if (GetEnvironmentVariableA("AOTR_PROFILE", penv, sizeof(penv)) && penv[0] == '1') {
+    bool profileRequested = GetEnvironmentVariableA("AOTR_PROFILE", penv, sizeof(penv)) && penv[0] == '1';
+#ifdef AOTR_PROD
+    if (profileRequested) logf("profile: AOTR_PROFILE ignored in production; use build_new.bat for reporting.");
+    profileRequested = false;
+#else
+    if(profileRequested && g_rotwkFxHooks) { g_diag=1;logf("profile: verified retail coarse timing requested for %s; legacy sampler remains unavailable.",g_gameModuleName); }
+    if (profileRequested && !g_profileMapVerified)
+        logf("profile: legacy engine profiler unavailable for %s; using the normal accelerator path. No unverified phase hooks installed.", g_gameModuleName);
+#endif
+    if (profileRequested && g_profileMapVerified) {
         installPerfMarkers(true);                    // measurement mode: perf-event stage timers, v3 exact timers + stage-tagged sampler, no render thread
         calibrateTimer();
         installFxTimers();
@@ -2767,6 +2812,7 @@ static DWORD WINAPI initThread(LPVOID) {
         installCrashLog();                           // fatal exceptions: where, registers and the call chain into the log (diagnostic only)
         if (g_bfme2Hooks) installBfme2Hooks();
         if (g_rotwkFxHooks) installRotwkFxHooks();
+        if (g_rotwkFxHooks) installRotwkWorkHooks(textHash);
 
         // --- anchored to absolute addresses inside one verified build
         if (g_engineHooks) {

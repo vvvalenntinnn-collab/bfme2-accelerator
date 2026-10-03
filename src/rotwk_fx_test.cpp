@@ -237,6 +237,11 @@ static void ids() {
     sentinel=(BYTE*)retailAlloc(20,0); put(sentinel,0,sentinel); put(sentinel,4,sentinel);
     put(manager,0x4C,sentinel);
     seedManager(256); warmIds(); assert(g_rwIds->ready && !g_rwIdProof && !g_rwIdKill);
+    rwIdInvalidate();for(unsigned i=0;i<8;++i) checkFind(100);assert(g_rwIds->ready);
+    append(NULL);assert(g_rwIds->buildAfter==32);
+    for(unsigned i=0;i<8;++i) checkFind(100);assert(!g_rwIds->ready && g_rwIds->queries==8);
+    append(NULL);for(unsigned i=0;i<32;++i) checkFind(100);assert(g_rwIds->ready);
+    append(NULL);assert(g_rwIds->buildAfter==8);warmIds();
     for (unsigned i=0;i<6000;++i) checkFind(randomWord()%400);
     // Duplicates retain the earliest node; misses and ID zero remain native.
     put(systems[256].bytes,0xA8,100u); append(&systems[256]); assert(!g_rwIds->ready); warmIds();
@@ -338,6 +343,18 @@ static void benchmarks() {
             Handle h={}; fn(manager,NULL,&h,(i%count)+1); benchSink=(DWORD)h.system; releaseHandle(h);
         };
         compareBench(name,100000,[&](unsigned i){lookup(g_rwFindOriginal,i);},[&](unsigned i){lookup(hkRwFind,i);});
+    }
+    for(unsigned queries:{1u,8u,32u,128u}) {
+        seedManager(256);g_rwIdProof=0;char name[96];sprintf(name,"particle ID churn, 256 systems, %u lookups per erase/insert",queries);
+        auto cycle=[&](RwFindFn function,unsigned iteration) {
+            BYTE* last=*(BYTE**)(sentinel+4);void* after=NULL;
+            ((RwEraseFn)0x5F5BC9)(manager+0x4C,NULL,&after,last);append(&systems[255]);
+            for(unsigned q=0;q<queries;++q) {
+                Handle handle={};DWORD id=(iteration*37+q*17)%256+1;
+                function(manager,NULL,&handle,id);benchSink=(DWORD)handle.system;assert(handle.system==&systems[id-1]);releaseHandle(handle);
+            }
+        };
+        compareBench(name,2000,[&](unsigned i){cycle(g_rwFindOriginal,i);},[&](unsigned i){cycle(hkRwFind,i);});
     }
     g_rwClearOriginal(manager+0x4C,NULL); retailFree(sentinel);
     assert(SetThreadAffinityMask(GetCurrentThread(),affinity));

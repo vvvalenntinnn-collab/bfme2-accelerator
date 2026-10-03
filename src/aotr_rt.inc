@@ -100,6 +100,20 @@ struct RtRec {
 
 static __forceinline DWORD rtAl16(DWORD n) { return (n + 15) & ~15u; }
 static __forceinline DWORD* rtArgs(RtRec* r) { return (DWORD*)(r + 1); }
+#ifndef AOTR_PROD
+#include "aotr_draw_spans.h"
+static volatile LONG64 g_rtDrawRecords=0,g_rtAdjacentDrawRanges=0;
+static bool rtIsPlainDraw(const RtRec* r) {
+    return r->kind==1 && !r->flags && !r->objMask && ((r->op==81 && r->nargs==4) || (r->op==82 && r->nargs==7));
+}
+static void rtObserveDrawRange(RtRec*& previous,RtRec* current) {
+    if(!rtIsPlainDraw(current)) { previous=NULL;return; }
+    InterlockedIncrement64(&g_rtDrawRecords);
+    if(previous && previous->op==current->op && previous->fn==current->fn &&
+        accelAdjacentDrawRanges(current->op,rtArgs(previous),rtArgs(current))) InterlockedIncrement64(&g_rtAdjacentDrawRanges);
+    previous=current;
+}
+#endif
 static __forceinline BYTE* rtPayload(RtRec* r) { return (BYTE*)r + rtAl16(sizeof(RtRec) + (DWORD)r->nargs * 4); }
 static void rtDrain();
 static void rtRetireDeviceRefs();
@@ -560,6 +574,9 @@ static DWORD WINAPI rtWorker(LPVOID) {
         EnterCriticalSection(&g_rtExecCs);
         RT_STAT_START(t0);
         DWORD seq = g_rtExecSeq;
+#ifndef AOTR_PROD
+        RtRec* previousDraw=NULL;
+#endif
 #ifndef AOTR_V4_NOLOCKWANT
         for (int n = 0; n < 256 && tail != head && !g_rtLK.want; ++n) {      // the game thread may want the lock for a direct call
 #else
@@ -567,6 +584,7 @@ static DWORD WINAPI rtWorker(LPVOID) {
 #endif
             RtRec* r = (RtRec*)(g_rtBuf + tail);
             if (r->kind == 2) { tail = 0; continue; }
+            PSTAT(if(g_diag) rtObserveDrawRange(previousDraw,r));
             rtExec(r);
             seq = r->seq;
             tail += r->size;
@@ -704,8 +722,49 @@ static void rtPresentBackpressure() {
 }
 static void rtMirInvalidate();
 static void rtDirectLocksForget();
+static LONG64 g_rtLastPortablePresent = 0;
+#ifndef AOTR_PROD
+enum { RT_INTERVAL_BINS=81 };
+static volatile LONG g_rtPortableBins[RT_INTERVAL_BINS],g_rtPortableIntervals=0,g_rtPortableOverBudget=0;
+static volatile LONG64 g_rtPortableMaximum=0;
+static unsigned rtIntervalBin(LONG64 ticks,LONG64 frequency) {
+    ULONGLONG quarters=(ULONGLONG)ticks*4000/(ULONGLONG)frequency;
+    return quarters<64?(unsigned)quarters:quarters<192?64+(unsigned)(quarters-64)/8:80;
+}
+static void rtRecordPortableInterval(LONG64 ticks) {
+    if(ticks<=0 || !g_pqpf.QuadPart) return;
+    InterlockedIncrement(&g_rtPortableBins[rtIntervalBin(ticks,g_pqpf.QuadPart)]);
+    InterlockedIncrement(&g_rtPortableIntervals);
+    if(ticks*120>g_pqpf.QuadPart) InterlockedIncrement(&g_rtPortableOverBudget);
+    LONG64 previous=rd64(&g_rtPortableMaximum);
+    while(ticks>previous) { LONG64 seen=InterlockedCompareExchange64(&g_rtPortableMaximum,ticks,previous); if(seen==previous) break;previous=seen; }
+}
+static double rtIntervalUpperBound(unsigned bin) { return bin<64?(bin+1)*0.25:bin<80?18.0+(bin-64)*2.0:48.0; }
+static void rtReportPortableBudget() {
+    static LONG previous[RT_INTERVAL_BINS]={},lastIntervals=0,lastOver=0;
+    LONG bins[RT_INTERVAL_BINS],total=0;
+    for(unsigned i=0;i<RT_INTERVAL_BINS;++i) { LONG now=g_rtPortableBins[i];bins[i]=now-previous[i];previous[i]=now;total+=bins[i]; }
+    LONG now=g_rtPortableIntervals,over=g_rtPortableOverBudget,d=now-lastIntervals,o=over-lastOver;lastIntervals=now;lastOver=over;
+    if(!total || !d) return;
+    unsigned p95=0,p99=0;LONG sum=0;
+    for(unsigned i=0;i<RT_INTERVAL_BINS;++i) { sum+=bins[i];if((LONG64)sum*100<(LONG64)total*95) p95=i+1;if((LONG64)sum*100<(LONG64)total*99) p99=i+1; }
+    char maxMs[32],overPct[32];LONG64 maximum=InterlockedExchange64(&g_rtPortableMaximum,0);
+    logf("rt-budget: queued-Present intervals=%d over 8.333ms=%s%%; p95 %s%.2fms p99 %s%.2fms (histogram bounds), max %sms; not display FPS.",
+        d,pctStr(o,d,overPct),p95==80?">=":"<",rtIntervalUpperBound(p95),p99==80?">=":"<",rtIntervalUpperBound(p99),msStr(maximum,1,maxMs));
+}
+#endif
+static void rtNotePortableFrame() {
+    if (g_engineHooks) return;                           // the legacy RenderViews hook counts its own frames
+    ++g_mkFrames;                                       // cache aging is functional, including swap-chain Presents
+    PSTAT(
+        LONG64 now = qpcNow();
+        if (g_rtLastPortablePresent) { LONG64 delta=now-g_rtLastPortablePresent;g_mkPeriod+=delta;rtRecordPortableInterval(delta); }
+        g_rtLastPortablePresent = now;
+    );
+}
 static void rtApplyToggle() {                          // render thread only
     LONG want = g_rtWantOn;
+    g_rtLastPortablePresent = 0;                         // no reporting interval spans time spent in direct mode
     rtDsInvalAll();                                      // the vertex-input shadow does not survive a switch
     rtMirInvalidate(); rtDirectLocksForget(); rtFreshForget();
     if (want && !g_rtActive) {
@@ -722,7 +781,7 @@ static DWORD __stdcall rt_dev_17(void* self, DWORD a0, DWORD a1, DWORD a2, DWORD
     DWORD* A = rtArgs(r); BYTE* P = rtPayload(r); DWORD po = 0;
     A[0] = (DWORD)(ULONG_PTR)self; A[1] = rtBytes(P, &po, a0, 16); A[2] = rtBytes(P, &po, a1, 16); A[3] = a2; A[4] = 0;
     InterlockedIncrement(&g_rtPendingPresents); g_rtNPresent++;
-    if (!g_engineHooks) ++g_mkFrames;                     // no engine frame counter on this build; the caches age by this
+    rtNotePortableFrame();
     rtCommit(r, po);
     rtPresentBackpressure();                              // at most one finished frame waiting on the worker
     return (DWORD)g_rtPresentHR;                          // the last Present the worker actually ran
@@ -735,6 +794,7 @@ static DWORD __stdcall rt_sc_3(void* self, DWORD a0, DWORD a1, DWORD a2, DWORD a
     DWORD* A = rtArgs(r); BYTE* P = rtPayload(r); DWORD po = 0;
     A[0] = (DWORD)(ULONG_PTR)self; A[1] = rtBytes(P, &po, a0, 16); A[2] = rtBytes(P, &po, a1, 16); A[3] = a2; A[4] = 0; A[5] = a4;
     InterlockedIncrement(&g_rtPendingPresents); g_rtNPresent++;
+    rtNotePortableFrame();
     rtCommit(r, po);
     rtPresentBackpressure();
     return (DWORD)g_rtPresentHR;
@@ -2059,40 +2119,16 @@ static void rtModuleRange(const char* name, DWORD* lo, DWORD* hi) {
 }
 // Keep the worker off the game thread's physical core: on an SMT CPU two busy threads on sibling logical
 // processors each run far slower than on separate cores. Soft hint (ideal processor), never a hard affinity.
+#include "aotr_cpu_topology.h"
 static DWORD g_rtIdealMain = 0xFFFFFFFF, g_rtIdealWorker = 0xFFFFFFFF;
 static void rtPlaceWorker(HANDLE worker) {
-#ifdef AOTR_V4_IDEAL
-    DWORD cur = GetCurrentProcessorNumber();
-    DWORD len = 0;
-    GetLogicalProcessorInformationEx(RelationProcessorCore, NULL, &len);
-    if (!len || len > (1u << 20)) return;
-    BYTE* buf = (BYTE*)VirtualAlloc(NULL, len, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    if (!buf) return;
-    KAFFINITY mainCore = 0, all = 0;
-    if (GetLogicalProcessorInformationEx(RelationProcessorCore, (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)buf, &len)) {
-        for (DWORD off = 0; off < len; ) {
-            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX e = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(buf + off);
-            if (e->Relationship == RelationProcessorCore && e->Processor.GroupMask[0].Group == 0) {
-                KAFFINITY m = e->Processor.GroupMask[0].Mask; all |= m;
-                if (cur < sizeof(KAFFINITY) * 8 && (m >> cur) & 1) mainCore = m;
-            }
-            off += e->Size;
-        }
-    }
-    VirtualFree(buf, 0, MEM_RELEASE);
-    if (!mainCore) return;
-    DWORD_PTR procMask = 0, sysMask = 0; GetProcessAffinityMask(GetCurrentProcess(), &procMask, &sysMask);
-    KAFFINITY cand = all & ~mainCore & (KAFFINITY)procMask;
-    if (!cand) return;
-    DWORD pick = 0xFFFFFFFF;
-    for (DWORD i = 0; i < sizeof(KAFFINITY) * 8; ++i) if ((cand >> i) & 1) { pick = i; if (i > cur) break; }   // nearest core above the game thread's
-    if (pick == 0xFFFFFFFF) return;
-    SetThreadIdealProcessor(GetCurrentThread(), cur);
-    SetThreadIdealProcessor(worker, pick);
-    g_rtIdealMain = cur; g_rtIdealWorker = pick;
-#else
-    (void)worker;
-#endif
+    char option[8]={};
+    if(GetEnvironmentVariableA("AOTR_WORKERPLACEMENT",option,sizeof(option)) && option[0]=='0') return;
+    AccelCpuPlan plan=accelAllowedCpuPlan();
+    if(plan.count<2) return;
+    SetThreadIdealProcessor(GetCurrentThread(),plan.cpu[0]);
+    SetThreadIdealProcessor(worker,plan.cpu[1]);
+    g_rtIdealMain=plan.cpu[0]; g_rtIdealWorker=plan.cpu[1];
 }
 static void rtInitBody();
 static void rtInit() {                                  // any thread; hooks the ID3DXEffect vtable and D3DX imports (once)
@@ -2274,6 +2310,8 @@ static DWORD WINAPI rtReport(LPVOID) {
     ULONG64 lastCpu = 0;
     for (;;) {
         Sleep(5000);
+        PSTAT(rtReportPortableBudget();
+            if(g_diag) logf("rt-batch-opportunities: native queued draws=%I64d, adjacent triangle ranges=%I64d cumulative; candidates only, caps/instancing/resources/images unverified.",rd64(&g_rtDrawRecords),rd64(&g_rtAdjacentDrawRanges)););
         ULONG64 pc = 0; { FILETIME c, e, k, u; if (GetProcessTimes(GetCurrentProcess(), &c, &e, &k, &u)) pc = (((ULONG64)k.dwHighDateTime << 32) | k.dwLowDateTime) + (((ULONG64)u.dwHighDateTime << 32) | u.dwLowDateTime); }
         int cpu = lastCpu ? (int)((pc - lastCpu) / 10000 / 50) : 0; lastCpu = pc;
         LONG fr = g_mkFrames; LONG dF = fr - lastFrames; lastFrames = fr;
