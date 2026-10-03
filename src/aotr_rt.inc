@@ -226,12 +226,18 @@ static bool rtRefPending(DWORD o) {                                             
 static volatile LONG g_rtCpuHistW[64], g_rtCpuHistM[64];
 static volatile LONG g_rtWaitCalls = 0, g_rtWaitTimeouts = 0, g_rtDrains = 0, g_rtWorkerSleeps = 0, g_rtWorkerTimeouts = 0;
 static volatile LONG64 g_rtWaitTicks = 0;
+// Report-only clocks. Watchdog/budget clocks must not use this macro.
+#ifdef AOTR_PROD
+#define RT_STAT_START(NAME) ((void)0)
+#else
+#define RT_STAT_START(NAME) LONG64 NAME = qpcNow()
+#endif
 static void rtWaitH(HANDLE h, DWORD ms) {
     // Pump only messages *sent* from other threads, so a worker blocked in a cross-thread SendMessage
     // (window changes inside the driver) can never deadlock against a waiting game thread.
-    LONG64 tw = qpcNow();
+    RT_STAT_START(tw);
     DWORD w = MsgWaitForMultipleObjects(1, &h, FALSE, ms, QS_SENDMESSAGE);
-    g_rtWaitTicks += qpcNow() - tw; g_rtWaitCalls++; if (w == WAIT_TIMEOUT) g_rtWaitTimeouts++;
+    PSTAT(g_rtWaitTicks += qpcNow() - tw; g_rtWaitCalls++; if (w == WAIT_TIMEOUT) g_rtWaitTimeouts++);
     if (w == WAIT_OBJECT_0 + 1) { MSG m; PeekMessageA(&m, NULL, 0, 0, PM_NOREMOVE | PM_QS_SENDMESSAGE); }
 }
 // ---------------------------------------------------------------- effect parameter writes, batched
@@ -326,7 +332,7 @@ static void rtDrain() {
     if (rtSeqReached(g_rtExecSeq, target)) { g_rtCurOp = 511; g_rtHaveResourceRelease = false; rtRetireDeviceRefs(); return; }
     rtPublish();
     LONG64 t0 = qpcNow();
-    g_rtDrains++;
+    PSTAT(g_rtDrains++);
     g_rtDrainSeq = target;
     InterlockedExchange(&g_rtDrainWaiting, 1);
     if (g_rtWorkerSleeping) SetEvent(g_rtWake);
@@ -343,8 +349,9 @@ static void rtDrain() {
         }
     }
     InterlockedExchange(&g_rtDrainWaiting, 0);
-    LONG64 dt = qpcNow() - t0;
-    g_rtDrainTicks += dt; g_rtDrainOpTicks[g_rtCurOp & 511] += dt; g_rtCurOp = 511;
+    PSTAT(LONG64 dt = qpcNow() - t0;
+          g_rtDrainTicks += dt; g_rtDrainOpTicks[g_rtCurOp & 511] += dt);
+    g_rtCurOp = 511;
     g_rtHaveResourceRelease = false;
     rtRetireDeviceRefs();
 }
@@ -530,7 +537,11 @@ static DWORD WINAPI rtWorker(LPVOID) {
             for (int spins = 0; g_rtHead == tail && spins < 4000; ++spins) _mm_pause();
             if (g_rtHead == tail) {
                 InterlockedExchange(&g_rtWorkerSleeping, 1);
-                if (g_rtHead == tail) { g_rtWorkerSleeps++; if (WaitForSingleObject(g_rtWake, 2) == WAIT_TIMEOUT) g_rtWorkerTimeouts++; }   // timed: a lost wakeup costs at most 2 ms
+                if (g_rtHead == tail) {                 // timed: a lost wakeup costs at most 2 ms
+                    PSTAT(g_rtWorkerSleeps++);
+                    DWORD w = WaitForSingleObject(g_rtWake, 2);
+                    PSTAT(if (w == WAIT_TIMEOUT) g_rtWorkerTimeouts++);
+                }
                 InterlockedExchange(&g_rtWorkerSleeping, 0);
             }
             continue;
@@ -540,7 +551,7 @@ static DWORD WINAPI rtWorker(LPVOID) {
             for (int k = 0; g_rtLK.want && k < 65536; ++k) _mm_pause();
 #endif
         EnterCriticalSection(&g_rtExecCs);
-        LONG64 t0 = qpcNow();
+        RT_STAT_START(t0);
         DWORD seq = g_rtExecSeq;
 #ifndef AOTR_V4_NOLOCKWANT
         for (int n = 0; n < 256 && tail != head && !g_rtLK.want; ++n) {      // the game thread may want the lock for a direct call
@@ -554,11 +565,11 @@ static DWORD WINAPI rtWorker(LPVOID) {
             tail += r->size;
         }
         g_rtTail = tail; g_rtExecSeq = seq;                 // publish progress once per batch
-        g_rtWH.cpu = GetCurrentProcessorNumber();
+        PSTAT(g_rtWH.cpu = GetCurrentProcessorNumber());
 #ifdef AOTR_V4_CPUSTAT
         g_rtCpuHistW[GetCurrentProcessorNumber() & 63]++;
 #endif
-        g_rtBusyTicks += qpcNow() - t0;
+        PSTAT(g_rtBusyTicks += qpcNow() - t0);
         LeaveCriticalSection(&g_rtExecCs);
         if (g_rtDrainWaiting && g_rtMainSleeping && rtSeqReached(seq, g_rtDrainSeq)) SetEvent(g_rtDrained);
     }
@@ -680,9 +691,9 @@ typedef DWORD (__stdcall* RtS5)(void*, DWORD, DWORD, DWORD, DWORD);
 typedef DWORD (__stdcall* RtS6)(void*, DWORD, DWORD, DWORD, DWORD, DWORD);
 static void rtPresentBackpressure() {
     if (g_rtPendingPresents <= 1) return;
-    LONG64 t0 = qpcNow();
+    RT_STAT_START(t0);
     while (g_rtPendingPresents > 1) rtWaitH(g_rtPresented, 2);
-    g_rtPresentWaitTicks += qpcNow() - t0;
+    PSTAT(g_rtPresentWaitTicks += qpcNow() - t0);
 }
 static void rtMirInvalidate();
 static void rtDirectLocksForget();
@@ -1946,10 +1957,10 @@ static void* g_rtXO[16];
 #define RT_SCOPE_OPEN()  DWORD tid_ = GetCurrentThreadId(); if (tid_ == g_mkTid) g_rtXDepth++; \
     bool main_ = (g_rtActive && tid_ == g_rtMainTid && !g_rtDirectScope); \
     bool foreign_ = (g_rtActive && tid_ != g_rtMainTid && tid_ != g_rtWorkerTid); \
-    if (main_) { rtDrain(); EnterCriticalSection(&g_rtExecCs); g_rtDirectScope++; g_rtNScope++; } else if (foreign_) EnterCriticalSection(&g_rtExecCs)
+    if (main_) { rtDrain(); EnterCriticalSection(&g_rtExecCs); g_rtDirectScope++; PSTAT(g_rtNScope++); } else if (foreign_) EnterCriticalSection(&g_rtExecCs)
 #define RT_SCOPE_CLOSE() if (main_) { g_rtDirectScope--; LeaveCriticalSection(&g_rtExecCs); } else if (foreign_) LeaveCriticalSection(&g_rtExecCs);     if (tid_ == g_mkTid) g_rtXDepth--
 static volatile LONG g_rtXCalls[16]; static volatile LONG64 g_rtXTicks[16];              // per scoped D3DX function: calls on the game thread, time incl. the drain
-#define RT_XW(I, N, ...) { LONG64 t0_ = qpcNow(); RT_SCOPE_OPEN(); DWORD r = ((DWORD(__stdcall*)(RT_XT##N))g_rtXO[I])(__VA_ARGS__); RT_SCOPE_CLOSE(); if (main_) { g_rtXCalls[I]++; g_rtXTicks[I] += qpcNow() - t0_; } return r; }
+#define RT_XW(I, N, ...) { RT_STAT_START(t0_); RT_SCOPE_OPEN(); DWORD r = ((DWORD(__stdcall*)(RT_XT##N))g_rtXO[I])(__VA_ARGS__); RT_SCOPE_CLOSE(); PSTAT(if (main_) { g_rtXCalls[I]++; g_rtXTicks[I] += qpcNow() - t0_; }); return r; }
 #define RT_XT4  DWORD, DWORD, DWORD, DWORD
 #define RT_XT7  DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD
 #define RT_XT8  DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD
