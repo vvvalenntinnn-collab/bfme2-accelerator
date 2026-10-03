@@ -1,0 +1,39 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.5.3
+** Copyright (c) 2022 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x86'
+rpmalloc.c
+rotwk_script_test.cpp
+   Creating library rotwk_script_report_test.lib and object rotwk_script_report_test.exp
+REFERENCE: host CRT memcmp
+PASS: 7730 native/candidate comparisons; sparse IDs, duplicates, live mutations, empty/embedded-NUL/high-byte/max-length names and bounds
+REFERENCE: supplied msvcr71.dll memcmp
+PASS: 15460 native/candidate comparisons; sparse IDs, duplicates, live mutations, empty/embedded-NUL/high-byte/max-length names and bounds
+PASS: seven dependency guards, failure-after-write rollback, opt-out and five-byte detour installation
+PASS: 512-call proof, 1/64 native sampling, startup/foreign-thread/layout fallback and mismatch circuit breaker
+PASS: unchanged native findScript wrapper ABI, selected/missing side, hit/miss, optional canonical output and destructor order (controlled dependencies)
+ALL SCRIPT CHECKS PASSED
+rotwk_script_test.cpp
+   Creating library rotwk_script_prod_test.lib and object rotwk_script_prod_test.exp
+REFERENCE: host CRT memcmp
+PASS: 7730 native/candidate comparisons; sparse IDs, duplicates, live mutations, empty/embedded-NUL/high-byte/max-length names and bounds
+REFERENCE: supplied msvcr71.dll memcmp
+PASS: 15460 native/candidate comparisons; sparse IDs, duplicates, live mutations, empty/embedded-NUL/high-byte/max-length names and bounds
+PASS: seven dependency guards, failure-after-write rollback, opt-out and five-byte detour installation
+PASS: 512-call proof, 1/64 native sampling, startup/foreign-thread/layout fallback and mismatch circuit breaker
+PASS: unchanged native findScript wrapper ABI, selected/missing side, hit/miss, optional canonical output and destructor order (controlled dependencies)
+BENCH CONFIG: entire fixture process pinned to logical CPU 0; 200000 calls/sample; 1/64 native self-check enabled
+BENCH scripts=1 prefix=0: previous-accelerator 26.82 ns, hooked 14.84 ns, 1.81x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=1 prefix=128: previous-accelerator 52.62 ns, hooked 34.35 ns, 1.53x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=2 prefix=0: previous-accelerator 40.39 ns, hooked 22.81 ns, 1.77x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=2 prefix=128: previous-accelerator 61.05 ns, hooked 36.79 ns, 1.66x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=8 prefix=0: previous-accelerator 63.35 ns, hooked 40.15 ns, 1.58x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=8 prefix=128: previous-accelerator 101.70 ns, hooked 67.84 ns, 1.50x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=32 prefix=0: previous-accelerator 92.82 ns, hooked 68.97 ns, 1.35x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=32 prefix=128: previous-accelerator 190.40 ns, hooked 142.93 ns, 1.33x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=256 prefix=0: previous-accelerator 198.53 ns, hooked 145.31 ns, 1.37x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=256 prefix=128: previous-accelerator 297.08 ns, hooked 221.87 ns, 1.34x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=2048 prefix=0: previous-accelerator 259.16 ns, hooked 216.99 ns, 1.19x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+BENCH scripts=2048 prefix=128: previous-accelerator 421.52 ns, hooked 324.75 ns, 1.30x; seven alternating samples, 50% hits/50% low+high misses, one logical CPU
+ALL SCRIPT CHECKS PASSED

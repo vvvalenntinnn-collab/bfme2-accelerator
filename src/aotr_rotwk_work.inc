@@ -158,8 +158,10 @@ static bool rwInstallPhaseTimers(DWORD hash,bool startReport=true) {
     return true;
 }
 #endif
+#include "aotr_rotwk_script.inc"
 static void installRotwkWorkHooks(DWORD hash) {
     logf("rotwk-work: render-list %s; audio index %s.",rwInstallList()?"installed":"off",rwInstallAudio()?"installed":"off");
+    logf("rotwk-work: script lookup %s.",rwInstallScriptLookup()?"installed":"off");
 #ifndef AOTR_PROD
     if(g_diag && !rwInstallPhaseTimers(hash)) logf("rotwk-profile: target phase bodies differ; no phase hooks installed.");
 #else

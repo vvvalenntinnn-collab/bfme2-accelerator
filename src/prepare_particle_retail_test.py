@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--retail', required=True, type=Path)
 parser.add_argument('--output', required=True, type=Path)
 parser.add_argument('--work', action='store_true', help='also verify render-list, audio and coarse-profile capabilities')
+parser.add_argument('--script', action='store_true', help='also verify the indexed script lookup and comparison dependencies')
 args = parser.parse_args()
 pe = pefile.PE(str(args.retail))
 assert pe.OPTIONAL_HEADER.ImageBase == 0x400000
@@ -43,6 +44,12 @@ if args.work:
                  (0x232409,294,0x4D60CC97,5),(0x1F5123,327,0x0698EE30,5),
                  (0x2F2364,666,0x4F58A019,6),(0x17EA80,488,0x8A2D9ECE,6)]
 decoder = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+if args.script:
+    for rva,size,digest in [(0x204A5D,128,0xD338F3DD),(0x3B712D,67,0xA4310078),
+                            (0x3B6287,80,0xD4DE2712),(0x65AA,42,0x2486D6F6),
+                            (0x6307,63,0x08FD6040),(0x52F9,43,0x3FE1424B)]:
+        assert fnv(pe.get_data(rva,size))==digest,hex(rva)
+    expected.append((0x3B72EC,41,0xCFD191AD,5))
 for rva, size, digest, stolen in expected:
     assert fnv(pe.get_data(rva, size)) == digest
     instructions = list(decoder.disasm(pe.get_data(rva, stolen), rva + 0x400000))
@@ -58,4 +65,4 @@ with args.output.open('wb') as output:
         raw = section.get_data()
         output.write(struct.pack('<II', section.VirtualAddress, len(raw)))
         output.write(raw)
-print(f'PASS: RotWK code hash {text_hash:08X}, {len(expected)+1} full body hashes and {len(expected)} detour boundaries' + ('; twelve dependency regions' if args.work else ''))
+print(f'PASS: RotWK code hash {text_hash:08X}, {len(expected)+1} full body hashes and {len(expected)} detour boundaries' + ('; twelve work dependency regions' if args.work else '') + ('; six script dependency regions' if args.script else ''))
