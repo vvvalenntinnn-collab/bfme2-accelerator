@@ -1,0 +1,29 @@
+CORES 1 physical, 0 preparation workers; main and render roles reserved; workers pinned; render role idle in this fixture
+PASS: 2017072 color points including buffer tails, optional inputs and four SSE rounding modes; 45504 native bone outputs across 12 x87 modes; immutable clip; joined FP status
+BENCH 1 cores 64x192 particle colors vs existing serial SIMD: serial 17.573 us, batch 15.601 us, 1.126x (seven-sample median)
+BENCH 1 cores 64x4096 particle colors vs existing serial SIMD: serial 500.540 us, batch 480.661 us, 1.041x (seven-sample median)
+BENCH 1 cores 32 independent native raw-animation trees/64 bones: serial 73.490 us, batch 73.046 us, 1.006x (seven-sample median)
+BENCH 1 cores 512 independent native raw-animation trees/64 bones: serial 1275.280 us, batch 1271.243 us, 1.003x (seven-sample median)
+BENCH 1 cores 1500 independent native raw-animation trees/64 bones: serial 5478.502 us, batch 5507.772 us, 0.995x (seven-sample median)
+CORES 2 physical, 0 preparation workers; main and render roles reserved; workers pinned; render role idle in this fixture
+PASS: 2017072 color points including buffer tails, optional inputs and four SSE rounding modes; 45504 native bone outputs across 12 x87 modes; immutable clip; joined FP status
+BENCH 2 cores 64x192 particle colors vs existing serial SIMD: serial 24.207 us, batch 21.543 us, 1.124x (seven-sample median)
+BENCH 2 cores 64x4096 particle colors vs existing serial SIMD: serial 459.853 us, batch 452.390 us, 1.016x (seven-sample median)
+BENCH 2 cores 32 independent native raw-animation trees/64 bones: serial 103.266 us, batch 102.519 us, 1.007x (seven-sample median)
+BENCH 2 cores 512 independent native raw-animation trees/64 bones: serial 1791.990 us, batch 1799.334 us, 0.996x (seven-sample median)
+BENCH 2 cores 1500 independent native raw-animation trees/64 bones: serial 3940.700 us, batch 3833.088 us, 1.028x (seven-sample median)
+CORES 3 physical, 1 preparation workers; main and render roles reserved; workers pinned; render role idle in this fixture
+PASS: 2017072 color points including buffer tails, optional inputs and four SSE rounding modes; 45504 native bone outputs across 12 x87 modes; immutable clip; joined FP status
+BENCH 3 cores 64x192 particle colors vs existing serial SIMD: serial 17.118 us, batch 16.046 us, 1.067x (seven-sample median)
+BENCH 3 cores 64x4096 particle colors vs existing serial SIMD: serial 535.663 us, batch 228.615 us, 2.343x (seven-sample median)
+BENCH 3 cores 32 independent native raw-animation trees/64 bones: serial 105.982 us, batch 66.596 us, 1.591x (seven-sample median)
+BENCH 3 cores 512 independent native raw-animation trees/64 bones: serial 1402.772 us, batch 902.276 us, 1.555x (seven-sample median)
+BENCH 3 cores 1500 independent native raw-animation trees/64 bones: serial 3896.650 us, batch 1953.140 us, 1.995x (seven-sample median)
+CORES 4 physical, 2 preparation workers; main and render roles reserved; workers pinned; render role idle in this fixture
+PASS: 2017072 color points including buffer tails, optional inputs and four SSE rounding modes; 45504 native bone outputs across 12 x87 modes; immutable clip; joined FP status
+BENCH 4 cores 64x192 particle colors vs existing serial SIMD: serial 17.688 us, batch 16.698 us, 1.059x (seven-sample median)
+BENCH 4 cores 64x4096 particle colors vs existing serial SIMD: serial 533.501 us, batch 204.532 us, 2.608x (seven-sample median)
+BENCH 4 cores 32 independent native raw-animation trees/64 bones: serial 103.941 us, batch 76.138 us, 1.365x (seven-sample median)
+BENCH 4 cores 512 independent native raw-animation trees/64 bones: serial 1283.797 us, batch 460.914 us, 2.785x (seven-sample median)
+BENCH 4 cores 1500 independent native raw-animation trees/64 bones: serial 3945.174 us, batch 1315.870 us, 2.998x (seven-sample median)
+PASS: whole-batch experiment only; no runtime hooks, game launch, D3D or game-frame FPS measurement

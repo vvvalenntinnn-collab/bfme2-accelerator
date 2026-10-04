@@ -1,0 +1,41 @@
+binary,physical_cores,workload,serial_us,batch_us,speedup
+exe,1,64x192 particle colors vs existing serial SIMD,16.396,14.780,1.109
+exe,1,64x4096 particle colors vs existing serial SIMD,545.409,477.450,1.142
+exe,1,32 independent native raw-animation trees/64 bones,71.481,74.101,0.965
+exe,1,512 independent native raw-animation trees/64 bones,1269.235,1296.702,0.979
+exe,1,1500 independent native raw-animation trees/64 bones,5360.048,5371.952,0.998
+exe,2,64x192 particle colors vs existing serial SIMD,23.374,21.139,1.106
+exe,2,64x4096 particle colors vs existing serial SIMD,402.154,365.413,1.101
+exe,2,32 independent native raw-animation trees/64 bones,101.077,103.070,0.981
+exe,2,512 independent native raw-animation trees/64 bones,1780.520,1812.043,0.983
+exe,2,1500 independent native raw-animation trees/64 bones,3752.802,3792.534,0.990
+exe,3,64x192 particle colors vs existing serial SIMD,16.842,15.544,1.084
+exe,3,64x4096 particle colors vs existing serial SIMD,487.708,219.277,2.224
+exe,3,32 independent native raw-animation trees/64 bones,101.708,64.043,1.588
+exe,3,512 independent native raw-animation trees/64 bones,1739.750,885.238,1.965
+exe,3,1500 independent native raw-animation trees/64 bones,3742.500,1944.204,1.925
+exe,4,64x192 particle colors vs existing serial SIMD,17.182,15.540,1.106
+exe,4,64x4096 particle colors vs existing serial SIMD,526.719,195.172,2.699
+exe,4,32 independent native raw-animation trees/64 bones,102.698,59.860,1.716
+exe,4,512 independent native raw-animation trees/64 bones,1750.340,608.371,2.877
+exe,4,1500 independent native raw-animation trees/64 bones,3742.772,1330.982,2.812
+dat,1,64x192 particle colors vs existing serial SIMD,17.573,15.601,1.126
+dat,1,64x4096 particle colors vs existing serial SIMD,500.540,480.661,1.041
+dat,1,32 independent native raw-animation trees/64 bones,73.490,73.046,1.006
+dat,1,512 independent native raw-animation trees/64 bones,1275.280,1271.243,1.003
+dat,1,1500 independent native raw-animation trees/64 bones,5478.502,5507.772,0.995
+dat,2,64x192 particle colors vs existing serial SIMD,24.207,21.543,1.124
+dat,2,64x4096 particle colors vs existing serial SIMD,459.853,452.390,1.016
+dat,2,32 independent native raw-animation trees/64 bones,103.266,102.519,1.007
+dat,2,512 independent native raw-animation trees/64 bones,1791.990,1799.334,0.996
+dat,2,1500 independent native raw-animation trees/64 bones,3940.700,3833.088,1.028
+dat,3,64x192 particle colors vs existing serial SIMD,17.118,16.046,1.067
+dat,3,64x4096 particle colors vs existing serial SIMD,535.663,228.615,2.343
+dat,3,32 independent native raw-animation trees/64 bones,105.982,66.596,1.591
+dat,3,512 independent native raw-animation trees/64 bones,1402.772,902.276,1.555
+dat,3,1500 independent native raw-animation trees/64 bones,3896.650,1953.140,1.995
+dat,4,64x192 particle colors vs existing serial SIMD,17.688,16.698,1.059
+dat,4,64x4096 particle colors vs existing serial SIMD,533.501,204.532,2.608
+dat,4,32 independent native raw-animation trees/64 bones,103.941,76.138,1.365
+dat,4,512 independent native raw-animation trees/64 bones,1283.797,460.914,2.785
+dat,4,1500 independent native raw-animation trees/64 bones,3945.174,1315.870,2.998

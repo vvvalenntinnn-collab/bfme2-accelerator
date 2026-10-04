@@ -15,6 +15,7 @@ parser.add_argument('--output', required=True, type=Path)
 parser.add_argument('--work', action='store_true', help='also verify render-list, audio and coarse-profile capabilities')
 parser.add_argument('--script', action='store_true', help='also verify the indexed script lookup and comparison dependencies')
 parser.add_argument('--movement', action='store_true', help='also verify pathfinding heap operations and the native cost reference')
+parser.add_argument('--offload', action='store_true', help='also verify the experimental native raw-animation batch reference')
 args = parser.parse_args()
 pe = pefile.PE(str(args.retail))
 assert pe.OPTIONAL_HEADER.ImageBase == 0x400000
@@ -55,6 +56,10 @@ if args.movement:
     assert fnv(pe.get_data(0x2E810B,20))==0xF63F9A3B
     expected.append((0x534602,170,0x34F5953F,6))
     expected += [(0x2ECF1D,72,0x71BF798C,6),(0x2ECF65,96,0xBA8CDDB2,6)]
+if args.offload:
+    for rva,size,digest in [(0x163310,2850,0xFFFABD60),(0x1A5050,345,0x4B906A19),
+                            (0x7177E,733,0x5E1E397E),(0x72BD10,512,0x304D3B07)]:
+        assert fnv(pe.get_data(rva,size))==digest,hex(rva)
 for rva, size, digest, stolen in expected:
     assert fnv(pe.get_data(rva, size)) == digest
     instructions = list(decoder.disasm(pe.get_data(rva, stolen), rva + 0x400000))
@@ -70,4 +75,4 @@ with args.output.open('wb') as output:
         raw = section.get_data()
         output.write(struct.pack('<II', section.VirtualAddress, len(raw)))
         output.write(raw)
-print(f'PASS: RotWK code hash {text_hash:08X}, {len(expected)+1} full body hashes and {len(expected)} detour boundaries' + ('; twelve work dependency regions' if args.work else '') + ('; six script dependency regions' if args.script else '') + ('; movement parent accessor verified' if args.movement else ''))
+print(f'PASS: RotWK code hash {text_hash:08X}, {len(expected)+1} full body hashes and {len(expected)} detour boundaries' + ('; twelve work dependency regions' if args.work else '') + ('; six script dependency regions' if args.script else '') + ('; movement parent accessor verified' if args.movement else '') + ('; four native offload reference regions' if args.offload else ''))
