@@ -1,0 +1,30 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.5.3
+** Copyright (c) 2022 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x86'
+rpmalloc.c
+rotwk_movement_test.cpp
+   Creating library rotwk_movement_report_test.lib and object rotwk_movement_report_test.exp
+PASS: both full-body guards, wrong-result startup rejection, 72 startup workloads, opt-out, six-byte detours and failure-after-write rollback
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: simultaneous independent heaps before render-thread identification; no global scratch/cache or thread gate
+PASS: 160 controlled grid requests; 26628 identical ordered expansions, 104787 identical queried costs; open field, choke, barrier, clutter and gate changes; routes/parents/final costs match
+ALL MOVEMENT CHECKS PASSED
+rotwk_movement_test.cpp
+   Creating library rotwk_movement_prod_test.lib and object rotwk_movement_prod_test.exp
+PASS: both full-body guards, wrong-result startup rejection, 72 startup workloads, opt-out, six-byte detours and failure-after-write rollback
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: simultaneous independent heaps before render-thread identification; no global scratch/cache or thread gate
+PASS: 160 controlled grid requests; 26628 identical ordered expansions, 104787 identical queried costs; open field, choke, barrier, clutter and gate changes; routes/parents/final costs match
+BENCH CONFIG: process pinned to logical CPU 4; seven alternating medians; original entry restored outside native timed samples (no trampoline overhead)
+BENCH heap 32 push+drain: native 0.56 us, hooked 0.45 us, 1.233x
+BENCH heap 256 push+drain: native 5.77 us, hooked 5.01 us, 1.151x
+BENCH heap 2048 push+drain: native 200.00 us, hooked 196.63 us, 1.017x
+PASS: 160 controlled grid requests; 26227 identical ordered expansions, 103625 identical queried costs; open field, choke, barrier, clutter and gate changes; routes/parents/final costs match
+BENCH controlled choke search: native 59.47 us, hooked 58.51 us, 1.016x (includes driver allocation/tracing; not retail whole search)
+ALL MOVEMENT CHECKS PASSED

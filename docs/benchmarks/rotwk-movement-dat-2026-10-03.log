@@ -1,0 +1,14 @@
+PASS: both full-body guards, wrong-result startup rejection, 72 startup workloads, opt-out, six-byte detours and failure-after-write rollback
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: simultaneous independent heaps before render-thread identification; no global scratch/cache or thread gate
+PASS: 160 controlled grid requests; 26628 identical ordered expansions, 104787 identical queried costs; open field, choke, barrier, clutter and gate changes; routes/parents/final costs match
+ALL MOVEMENT CHECKS PASSED
+PASS: both full-body guards, wrong-result startup rejection, 72 startup workloads, opt-out, six-byte detours and failure-after-write rollback
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: 36000 native/hooked heap operations; 1..2048 entries, duplicates/ties, non-root holes/top, live key mutation, null trivial values, full arrays/cell bytes and control state
+PASS: simultaneous independent heaps before render-thread identification; no global scratch/cache or thread gate
+PASS: 160 controlled grid requests; 26628 identical ordered expansions, 104787 identical queried costs; open field, choke, barrier, clutter and gate changes; routes/parents/final costs match
+ALL MOVEMENT CHECKS PASSED

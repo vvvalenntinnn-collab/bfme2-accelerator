@@ -14,6 +14,7 @@ parser.add_argument('--retail', required=True, type=Path)
 parser.add_argument('--output', required=True, type=Path)
 parser.add_argument('--work', action='store_true', help='also verify render-list, audio and coarse-profile capabilities')
 parser.add_argument('--script', action='store_true', help='also verify the indexed script lookup and comparison dependencies')
+parser.add_argument('--movement', action='store_true', help='also verify pathfinding heap operations and the native cost reference')
 args = parser.parse_args()
 pe = pefile.PE(str(args.retail))
 assert pe.OPTIONAL_HEADER.ImageBase == 0x400000
@@ -50,6 +51,10 @@ if args.script:
                             (0x6307,63,0x08FD6040),(0x52F9,43,0x3FE1424B)]:
         assert fnv(pe.get_data(rva,size))==digest,hex(rva)
     expected.append((0x3B72EC,41,0xCFD191AD,5))
+if args.movement:
+    assert fnv(pe.get_data(0x2E810B,20))==0xF63F9A3B
+    expected.append((0x534602,170,0x34F5953F,6))
+    expected += [(0x2ECF1D,72,0x71BF798C,6),(0x2ECF65,96,0xBA8CDDB2,6)]
 for rva, size, digest, stolen in expected:
     assert fnv(pe.get_data(rva, size)) == digest
     instructions = list(decoder.disasm(pe.get_data(rva, stolen), rva + 0x400000))
@@ -65,4 +70,4 @@ with args.output.open('wb') as output:
         raw = section.get_data()
         output.write(struct.pack('<II', section.VirtualAddress, len(raw)))
         output.write(raw)
-print(f'PASS: RotWK code hash {text_hash:08X}, {len(expected)+1} full body hashes and {len(expected)} detour boundaries' + ('; twelve work dependency regions' if args.work else '') + ('; six script dependency regions' if args.script else ''))
+print(f'PASS: RotWK code hash {text_hash:08X}, {len(expected)+1} full body hashes and {len(expected)} detour boundaries' + ('; twelve work dependency regions' if args.work else '') + ('; six script dependency regions' if args.script else '') + ('; movement parent accessor verified' if args.movement else ''))

@@ -1,0 +1,5 @@
+workload,native_us_rounded,hooked_us_rounded,speedup_from_unrounded_times
+32,0.56,0.45,1.233
+256,5.77,5.01,1.151
+2048,200.00,196.63,1.017
+controlled-choke,59.47,58.51,1.016
