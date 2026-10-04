@@ -1,0 +1,20 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.5.3
+** Copyright (c) 2022 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x86'
+rpmalloc.c
+rotwk_skeleton_test.cpp
+   Creating library rotwk_skeleton_report_test.lib and object rotwk_skeleton_report_test.exp
+PASS: private hierarchy rejects slaved/nested/auto-advanced/blended/captured/cyclic/out-of-capacity layouts
+PASS: 273024 native bone outputs through installed hooks; proof/live transition, stale root/frame/base/scale rejection, foreign scene, mismatch kill and native forwarding
+PASS: live retail skeleton capability, default activation, complete body/vtable guards and standalone native fixture
+rotwk_skeleton_test.cpp
+   Creating library rotwk_skeleton_prod_test.lib and object rotwk_skeleton_prod_test.exp
+PASS: private hierarchy rejects slaved/nested/auto-advanced/blended/captured/cyclic/out-of-capacity layouts
+PASS: 273024 native bone outputs through installed hooks; proof/live transition, stale root/frame/base/scale rejection, foreign scene, mismatch kill and native forwarding
+PROFILE 512 units / 512 jobs: scan 1490.500 us, scan+workers 897.300 us, consume 762.800 us
+BENCH LIVE pipeline 512 units/64 bones including collect/snapshot/validate/commit: serial 1703.233 us, batch 1205.331 us, 1.413x (seven-sample median)
+PROFILE 1500 units / 1500 jobs: scan 4151.800 us, scan+workers 3884.600 us, consume 1331.000 us
+BENCH LIVE pipeline 1500 units/64 bones including collect/snapshot/validate/commit: serial 3859.840 us, batch 3062.219 us, 1.260x (seven-sample median)
+PASS: live retail skeleton capability, default activation, complete body/vtable guards and standalone native fixture

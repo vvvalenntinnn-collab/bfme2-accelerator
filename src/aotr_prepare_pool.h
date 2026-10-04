@@ -55,6 +55,9 @@ struct AccelPreparePool {
                 shutdown(); return false;
             }
             ++workers; SetThreadIdealProcessor(threads[i],plan.cpu[i+2]);
+            // New compute threads stay on their spare physical core. An ideal
+            // processor alone permits migration onto the main/render cores.
+            if(!SetThreadAffinityMask(threads[i],plan.mask[i+2])) {shutdown();return false;}
         }
         return workers!=0;
     }

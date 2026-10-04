@@ -2,6 +2,10 @@
 
 Date: 2026-10-03. Baseline: `3fce23d` on `main`.
 
+Follow-up: [live skeleton preparation](rotwk-skeleton-workers-2026-10-03.md)
+now implements the verified raw-animation worker path. The measurements and
+remaining targets below describe the earlier isolated experiment.
+
 ## Decision
 
 Prioritize a verified port of batched skeleton/model preparation to the supplied direct EXE. Follow it with particle geometry preparation across many systems. Both can move a substantial part of rendering preparation off the main thread. Continue movement work after these boundaries have been established, or when a battle profile shows movement is the dominant cost.

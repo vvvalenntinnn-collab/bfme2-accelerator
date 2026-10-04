@@ -16,6 +16,7 @@ parser.add_argument('--work', action='store_true', help='also verify render-list
 parser.add_argument('--script', action='store_true', help='also verify the indexed script lookup and comparison dependencies')
 parser.add_argument('--movement', action='store_true', help='also verify pathfinding heap operations and the native cost reference')
 parser.add_argument('--offload', action='store_true', help='also verify the experimental native raw-animation batch reference')
+parser.add_argument('--skeleton', action='store_true', help='also verify the live private skeleton preparation capability')
 args = parser.parse_args()
 pe = pefile.PE(str(args.retail))
 assert pe.OPTIONAL_HEADER.ImageBase == 0x400000
@@ -60,6 +61,16 @@ if args.offload:
     for rva,size,digest in [(0x163310,2850,0xFFFABD60),(0x1A5050,345,0x4B906A19),
                             (0x7177E,733,0x5E1E397E),(0x72BD10,512,0x304D3B07)]:
         assert fnv(pe.get_data(rva,size))==digest,hex(rva)
+if args.skeleton:
+    for rva,size,digest in [(0x163310,2850,0xFFFABD60),(0x72BD10,360,0xC1F7C2D6),
+                           (0x1A3F70,109,0xAD1CEA1A),(0x7EBD90,88,0x82D45E23),
+                           (0x18E9C0,4,0x60A96AA4),(0x18E9F0,4,0x78B28AC8),
+                           (0x1175A0,3,0x94777CFF),(0x688AC0,1,0x460B3072)]:
+        assert fnv(pe.get_data(rva,size))==digest,hex(rva)
+    expected += [(0x7177E,733,0x5E1E397E,6),(0x1A5050,345,0x4B906A19,6)]
+    assert pe.get_data(0x163374,8)==bytes.fromhex('d944246cdb5c2464')
+    kernel=list(decoder.disasm(pe.get_data(0x163310,2850),0x563310))
+    assert [i.address for i in kernel if i.mnemonic=='call' and i.op_str.startswith('0x')]==[0x56332D,0x563E02]
 for rva, size, digest, stolen in expected:
     assert fnv(pe.get_data(rva, size)) == digest
     instructions = list(decoder.disasm(pe.get_data(rva, stolen), rva + 0x400000))

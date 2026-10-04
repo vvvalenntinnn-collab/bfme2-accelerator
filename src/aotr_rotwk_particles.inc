@@ -9,6 +9,15 @@ static DWORD g_rwColorProof = 512, g_rwColorTick = 0;
 static bool g_rwColorKill = false;
 static AccelPreparePool g_rwPreparePool={};
 static bool g_rwPrepareTried=false, g_rwPrepareEnabled=false;
+static bool rwStartPreparationPool() {
+    if(!g_rwPrepareTried) {
+        g_rwPrepareTried=true;
+        AccelCpuPlan plan=accelReserveCpuRoles(accelAllowedCpuPlan(),g_rtIdealMain,g_rtIdealWorker);
+        g_rwPreparePool.start(plan);
+        logf("rotwk: joined preparation pool %u workers on %u allowed physical cores (two cores reserved for main/render).",g_rwPreparePool.workers,plan.count);
+    }
+    return g_rwPreparePool.workers!=0;
+}
 struct RwColorJob { float* dst; const float* rgb; const float* alpha; };
 static void rwColorRange(void* context,unsigned begin,unsigned end) {
     const RwColorJob& job=*(RwColorJob*)context;
@@ -18,12 +27,7 @@ static bool rwRunPreparation(AccelPrepareFn function,void* context,DWORD count) 
     // Dispatch/join cost dominates ordinary small systems. Experimental large
     // packs use the same shared pool intended for future pure preparation jobs.
     if(g_rwPrepareEnabled && count>=32768) {
-        if(!g_rwPrepareTried) {
-            g_rwPrepareTried=true; AccelCpuPlan plan=accelReserveCpuRoles(accelAllowedCpuPlan(),g_rtIdealMain,g_rtIdealWorker);
-            g_rwPreparePool.start(plan);
-            logf("rotwk: joined preparation pool %u workers on %u allowed physical cores (two cores reserved for main/render).",g_rwPreparePool.workers,plan.count);
-        }
-        return g_rwPreparePool.run(function,context,count,2048);
+        return rwStartPreparationPool() && g_rwPreparePool.run(function,context,count,2048);
     }
     return false;
 }
